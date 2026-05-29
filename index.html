@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loop — Self-Serve Onboarding v4</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f7f8fa;--white:#fff;--text:#1a1a2e;--text-sec:#5a5d7a;--text-light:#9496ad;
+  --border:#e8eaef;--border-focus:#7c6cf0;
+  --accent:#6c5ce7;--accent-soft:#f0eeff;--accent-text:#5b4cdb;--accent-dark:#4a3dc7;
+  --green:#10b981;--green-soft:#ecfdf5;--green-text:#059669;
+  --orange:#f59e0b;--orange-soft:#fffbeb;--orange-text:#d97706;
+  --blue:#3b82f6;--blue-soft:#eff6ff;
+  --teal:#00bfa6;--teal-soft:#e6faf7;--teal-text:#00917c;
+  --red:#ef4444;--red-soft:#fef2f2;--red-text:#dc2626;
+  --navy:#09234b;
+  --r:16px;--rs:10px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 4px 16px rgba(0,0,0,.06);
+  --sidebar-w:250px;--agent-w:360px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* TOPBAR */
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:100}
+.tb-left{display:flex;align-items:center;gap:14px}
+.logo{font-size:18px;font-weight:800;color:var(--accent);letter-spacing:-.5px;cursor:pointer}
+.tb-div{width:1px;height:20px;background:var(--border)}
+.tb-step{font-size:13px;color:var(--text-sec);display:flex;align-items:center;gap:8px}
+.tb-step strong{color:var(--text);font-weight:600}
+.time-pill{font-size:11px;background:var(--bg);color:var(--text-light);padding:2px 10px;border-radius:20px}
+.tb-right{display:flex;align-items:center;gap:12px}
+.save-ind{font-size:11px;color:var(--green-text);display:flex;align-items:center;gap:5px}
+.save-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.tb-btn{font-size:12px;padding:6px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--white);color:var(--text-sec);cursor:pointer;font-family:inherit;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:5px}
+.tb-btn:hover{border-color:var(--accent);color:var(--accent-text)}
+.tb-btn.active{background:var(--accent);color:white;border-color:var(--accent)}
+.tb-btn.support{border-color:var(--teal);color:var(--teal-text)}
+.tb-btn.support:hover{background:var(--teal-soft)}
+
+/* LAYOUT */
+.app-layout{display:flex;height:calc(100vh - 54px);overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-progress{padding:20px;border-bottom:1px solid var(--border)}
+.sb-pct{font-size:28px;font-weight:800;color:var(--accent);margin-bottom:2px}
+.sb-label{font-size:12px;color:var(--text-light)}
+.sb-bar{height:6px;background:var(--border);border-radius:3px;margin-top:10px;overflow:hidden}
+.sb-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),#a78bfa);transition:width .6s ease}
+.sb-nav{flex:1;overflow-y:auto;padding:8px 0}
+.sb-phase{margin-bottom:4px}
+.sb-phase-head{display:flex;align-items:center;gap:8px;padding:8px 20px;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;cursor:pointer}
+.sb-phase-head:hover{color:var(--text-sec)}
+.sb-phase-head.active{color:var(--accent-text)}
+.sb-phase-head .ph-dot{width:8px;height:8px;border-radius:50%;border:2px solid var(--border);flex-shrink:0}
+.sb-phase-head .ph-dot.done{background:var(--green);border-color:var(--green)}
+.sb-phase-head .ph-dot.active{background:var(--accent);border-color:var(--accent)}
+.sb-phase-head .ph-dot.locked{background:var(--bg);border-color:var(--border)}
+.sb-step{display:flex;align-items:center;gap:8px;padding:6px 20px 6px 36px;font-size:12px;color:var(--text-light);cursor:pointer;transition:all .1s}
+.sb-step:hover{background:var(--bg);color:var(--text-sec)}
+.sb-step.active{background:var(--accent-soft);color:var(--accent-text);font-weight:600}
+.sb-step.done{color:var(--green-text)}
+.sb-step .st-dot{width:6px;height:6px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0}
+.sb-step.done .st-dot{background:var(--green);border-color:var(--green)}
+.sb-step.active .st-dot{background:var(--accent);border-color:var(--accent)}
+.sb-cross{margin:8px 16px;padding:12px;background:var(--blue-soft);border-radius:var(--rs);font-size:11px;color:var(--blue);line-height:1.5}
+.sb-cross strong{font-weight:600}
+.sb-support{padding:12px 16px;border-top:1px solid var(--border)}
+.sb-support-btn{width:100%;padding:10px;border-radius:var(--rs);background:var(--teal-soft);color:var(--teal-text);border:1px solid rgba(0,191,166,.15);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center}
+.sb-support-btn:hover{background:var(--teal);color:white}
+
+/* MAIN CONTENT */
+.main-content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.main-scroll{flex:1;overflow-y:auto;padding:32px 40px 100px}
+.main-inner{max-width:680px;margin:0 auto}
+.step-eyebrow{font-size:11px;color:var(--accent-text);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.step-title{font-size:22px;font-weight:700;margin-bottom:6px;letter-spacing:-.3px}
+.step-desc{font-size:14px;color:var(--text-sec);margin-bottom:20px;max-width:560px}
+
+/* CARDS */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);margin-bottom:16px;box-shadow:var(--shadow-sm)}
+.card-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600}
+.card-body{padding:18px 20px}
+.card-foot{padding:12px 20px;border-top:1px solid var(--border);background:var(--bg);border-radius:0 0 var(--r) var(--r);display:flex;justify-content:space-between;align-items:center}
+.card.prefilled{border-color:rgba(16,185,129,.25)}
+.card.prefilled .card-head{background:var(--green-soft)}
+
+/* BANNERS */
+.banner{border-radius:var(--rs);padding:12px 16px;margin-bottom:16px;font-size:13px;display:flex;gap:10px;align-items:flex-start;line-height:1.5}
+.banner-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.banner.info{background:var(--accent-soft);border:1px solid rgba(108,92,231,.12);color:var(--accent-text)}
+.banner.success{background:var(--green-soft);border:1px solid rgba(16,185,129,.15);color:var(--green-text)}
+.banner.warn{background:var(--orange-soft);border:1px solid rgba(245,158,11,.2);color:var(--orange-text)}
+.banner.error{background:var(--red-soft);border:1px solid rgba(239,68,68,.15);color:var(--red-text)}
+
+/* FORM ELEMENTS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.full{grid-column:1/-1}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fl{font-size:11px;font-weight:600;color:var(--text-sec);text-transform:uppercase;letter-spacing:.3px}
+.fi{padding:9px 13px;background:var(--white);border:1.5px solid var(--border);border-radius:var(--rs);color:var(--text);font-size:13px;font-family:inherit;transition:all .15s}
+.fi:focus{outline:none;border-color:var(--border-focus);box-shadow:0 0 0 3px var(--accent-soft)}
+.fi.prefilled{border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.03)}
+select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239496ad'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer}
+
+/* CHOICE CARDS */
+.choices{display:flex;gap:12px;margin:16px 0}
+.choice{flex:1;background:var(--white);border:2px solid var(--border);border-radius:var(--r);padding:20px 16px;cursor:pointer;transition:all .15s;text-align:center}
+.choice:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(108,92,231,.1);transform:translateY(-1px)}
+.choice.selected{border-color:var(--accent);background:var(--accent-soft)}
+.choice-icon{font-size:28px;margin-bottom:8px}
+.choice h3{font-size:14px;font-weight:600;margin-bottom:4px}
+.choice p{font-size:11px;color:var(--text-sec);line-height:1.4}
+
+/* COPY FIELD */
+.copy-field{background:var(--bg);border:2px dashed var(--border);border-radius:var(--rs);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .15s;margin:16px 0}
+.copy-field:hover{border-color:var(--accent);background:var(--accent-soft)}
+.copy-field.copied{border-color:var(--green);border-style:solid;background:var(--green-soft)}
+.copy-text{font-size:15px;font-weight:600;font-family:'SF Mono',Monaco,monospace;color:var(--text);letter-spacing:.3px}
+.copy-btn{font-size:11px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.5px;background:none;border:none;cursor:pointer}
+.copy-field.copied .copy-btn{color:var(--green-text)}
+
+/* VERIFICATION CHECKLIST */
+.verify-list{margin:16px 0}
+.verify-item{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:14px;color:var(--text-sec);opacity:.4;transition:all .3s}
+.verify-item.checking{opacity:1;color:var(--text)}
+.verify-item.done{opacity:1;color:var(--green-text)}
+.verify-item .vi-icon{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .3s;flex-shrink:0}
+.verify-item.checking .vi-icon{border-color:var(--accent);animation:spin 1s linear infinite}
+.verify-item.done .vi-icon{border-color:var(--green);background:var(--green);color:white}
+
+/* PROGRESS BAR (threshold) */
+.threshold-bar{margin:12px 0}
+.tb-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-light);margin-bottom:4px}
+.tb-track{height:10px;background:var(--border);border-radius:5px;position:relative;overflow:hidden}
+.tb-filled{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--teal),var(--green));transition:width 1s ease}
+.tb-marker{position:absolute;top:-4px;height:18px;width:2px;background:var(--accent);border-radius:1px}
+
+/* DATA TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+.data-table th{text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-light);font-weight:600;border-bottom:1px solid var(--border);background:var(--bg)}
+.data-table td{padding:8px 10px;border-bottom:1px solid var(--border)}
+.data-table tr:last-child td{border:none}
+.data-table .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+
+/* BUTTONS */
+.btn{padding:10px 22px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:white}
+.btn-primary:hover{background:var(--accent-dark)}
+.btn-ghost{background:var(--white);color:var(--text-sec);border:1.5px solid var(--border)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent-text)}
+.btn-teal{background:var(--teal);color:white}
+.btn-teal:hover{background:var(--teal-text)}
+.btn-success{background:var(--green);color:white}
+.btn-success:hover{background:var(--green-text)}
+.btn-lg{padding:14px 32px;font-size:15px;border-radius:var(--r)}
+.step-actions{display:flex;gap:10px;margin-top:24px;justify-content:flex-end}
+.step-actions .btn-back{margin-right:auto}
+
+/* PLATFORM LOGOS */
+.platform-logo{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:white;flex-shrink:0}
+.platform-logo.dd{background:#ff3008}.platform-logo.ue{background:#06c167}.platform-logo.gh{background:#e3342f}
+
+/* AGENT PANEL */
+.agent-panel{width:0;flex-shrink:0;background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width .3s ease}
+.agent-panel.open{width:var(--agent-w)}
+.agent-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.agent-head h3{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.agent-head .agent-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.agent-close{width:28px;height:28px;border-radius:8px;border:none;background:var(--bg);cursor:pointer;font-size:14px;color:var(--text-sec);display:flex;align-items:center;justify-content:center}
+.agent-close:hover{background:var(--border)}
+.agent-messages{flex:1;overflow-y:auto;padding:16px 20px}
+.agent-msg{margin-bottom:16px;animation:fadeUp .3s ease}
+.agent-msg .am-name{font-size:10px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+.agent-msg .am-bubble{font-size:13px;line-height:1.6;color:var(--text);background:var(--bg);padding:10px 14px;border-radius:12px 12px 12px 4px}
+.agent-msg.user .am-bubble{background:var(--accent);color:white;border-radius:12px 12px 4px 12px;margin-left:40px}
+.agent-msg .am-time{font-size:10px;color:var(--text-light);margin-top:3px}
+.typing-indicator{display:flex;gap:4px;padding:10px 14px;background:var(--bg);border-radius:12px;width:fit-content}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--text-light);animation:bounce .6s infinite}
+.typing-dot:nth-child(2){animation-delay:.15s}
+.typing-dot:nth-child(3){animation-delay:.3s}
+.agent-input{padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:8px}
+.agent-input input{flex:1;padding:8px 14px;border:1.5px solid var(--border);border-radius:20px;font-size:12px;font-family:inherit;outline:none}
+.agent-input input:focus{border-color:var(--accent)}
+.agent-input button{width:32px;height:32px;border-radius:50%;background:var(--accent);color:white;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.quick-replies{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.qr-btn{padding:6px 14px;border-radius:20px;font-size:11px;font-weight:500;border:1.5px solid var(--border);background:var(--white);color:var(--text-sec);cursor:pointer;font-family:inherit;transition:all .1s}
+.qr-btn:hover{border-color:var(--accent);color:var(--accent-text);background:var(--accent-soft)}
+
+/* MILESTONE OVERLAY */
+.milestone-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000}
+.milestone-overlay.show{display:flex}
+.milestone-card{background:var(--white);border-radius:24px;padding:48px 40px;text-align:center;max-width:440px;width:90%;animation:scaleIn .4s ease;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.milestone-card .ms-icon{font-size:56px;margin-bottom:16px}
+.milestone-card h2{font-size:24px;font-weight:800;margin-bottom:8px;letter-spacing:-.3px}
+.milestone-card p{font-size:14px;color:var(--text-sec);margin-bottom:24px;line-height:1.6}
+.milestone-card .ms-summary{text-align:left;background:var(--bg);border-radius:var(--rs);padding:16px;margin-bottom:20px;font-size:13px}
+.milestone-card .ms-row{display:flex;justify-content:space-between;padding:4px 0}
+.milestone-card .ms-row span:last-child{font-weight:600;color:var(--text)}
+.milestone-card .ms-next{font-size:12px;color:var(--accent-text);background:var(--accent-soft);padding:10px 16px;border-radius:var(--rs);margin-bottom:20px;text-align:left}
+
+/* JOURNEY MAP OVERLAY */
+.journey-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000}
+.journey-overlay.show{display:flex}
+.journey-card{background:var(--white);border-radius:24px;padding:32px;max-width:480px;width:90%;animation:scaleIn .3s ease;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.journey-card h2{font-size:18px;font-weight:700;margin-bottom:20px;text-align:center}
+.jm-step{display:flex;align-items:center;gap:12px;padding:10px 0;position:relative}
+.jm-step:not(:last-child)::after{content:'';position:absolute;left:15px;top:36px;width:2px;height:calc(100% - 16px);background:var(--border)}
+.jm-step.done::after{background:var(--green)}
+.jm-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text-light);background:var(--white);z-index:1;flex-shrink:0}
+.jm-step.done .jm-dot{background:var(--green);border-color:var(--green);color:white}
+.jm-step.active .jm-dot{background:var(--accent);border-color:var(--accent);color:white;box-shadow:0 0 0 4px var(--accent-soft)}
+.jm-info h4{font-size:13px;font-weight:600}
+.jm-info p{font-size:11px;color:var(--text-light)}
+.jm-step.active .jm-info h4{color:var(--accent-text)}
+
+/* ERROR CARD */
+.error-card{border-radius:var(--r);border:1px solid rgba(239,68,68,.2);overflow:hidden;margin:16px 0}
+.error-section{padding:14px 18px;border-bottom:1px solid var(--border)}
+.error-section:last-child{border:none}
+.error-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.error-section:nth-child(1){background:var(--red-soft)}.error-section:nth-child(1) .error-label{color:var(--red-text)}
+.error-section:nth-child(2){background:var(--orange-soft)}.error-section:nth-child(2) .error-label{color:var(--orange-text)}
+.error-section:nth-child(3){background:var(--green-soft)}.error-section:nth-child(3) .error-label{color:var(--green-text)}
+.error-section p,.error-section ol{font-size:13px;line-height:1.6}
+.error-section ol{padding-left:18px}
+
+/* TRACK SWITCHER */
+.track-switch{display:flex;background:var(--bg);border-radius:var(--rs);padding:3px;margin-bottom:16px;gap:2px}
+.track-tab{flex:1;padding:8px 16px;text-align:center;font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;color:var(--text-light);transition:all .15s}
+.track-tab.active{background:var(--white);color:var(--text);box-shadow:var(--shadow-sm)}
+
+/* CONFETTI */
+#confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:1001}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideRight{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+.fade-in{animation:fadeIn .3s ease}.fade-up{animation:fadeUp .3s ease}.slide-right{animation:slideRight .3s ease}
+
+/* RESPONSIVE */
+@media(max-width:900px){.sidebar{width:200px}.agent-panel.open{width:300px}}
+@media(max-width:700px){.sidebar{display:none}.agent-panel.open{position:fixed;right:0;top:54px;bottom:0;width:100%;z-index:99}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-left">
+    <div class="logo" onclick="showJourney()">Loop</div>
+    <div class="tb-div"></div>
+    <div class="tb-step" id="tb-step"><strong>Welcome</strong> <span class="time-pill" id="tb-time">~1 min</span></div>
+  </div>
+  <div class="tb-right">
+    <div class="save-ind"><span class="save-dot"></span> Auto-saved</div>
+    <button class="tb-btn support" onclick="alert('Support: schedule a call at support@loop.ai')">Support</button>
+    <button class="tb-btn" id="agent-toggle" onclick="toggleAgent()">AI Chat</button>
+  </div>
+</div>
+
+<!-- APP LAYOUT -->
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-progress">
+      <div class="sb-pct" id="sb-pct">0%</div>
+      <div class="sb-label" id="sb-label">Getting started</div>
+      <div class="sb-bar"><div class="sb-fill" id="sb-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+    <div class="sb-cross" id="sb-cross" style="display:none">
+      <strong>Michael Torres</strong> is setting up billing separately. <span id="cross-status">Not started yet.</span>
+    </div>
+    <div class="sb-support">
+      <button class="sb-support-btn" onclick="alert('Schedule a support call at support@loop.ai')">Schedule Support Call</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <div class="main-scroll" id="main-scroll">
+      <div class="main-inner" id="main-inner"></div>
+    </div>
+  </main>
+
+  <!-- AGENT PANEL -->
+  <aside class="agent-panel" id="agent-panel">
+    <div class="agent-head">
+      <h3><span class="agent-dot"></span> Loop Assistant</h3>
+      <button class="agent-close" onclick="toggleAgent()">&times;</button>
+    </div>
+    <div class="agent-messages" id="agent-messages"></div>
+    <div class="agent-input">
+      <input type="text" placeholder="Ask me anything..." id="agent-input-field" onkeydown="if(event.key==='Enter')sendAgentMsg()">
+      <button onclick="sendAgentMsg()">&#8593;</button>
+    </div>
+  </aside>
+
+</div>
+
+<!-- MILESTONE OVERLAY -->
+<div class="milestone-overlay" id="milestone-overlay" onclick="if(event.target===this)closeMilestone()">
+  <div class="milestone-card" id="milestone-card"></div>
+</div>
+
+<!-- JOURNEY MAP OVERLAY -->
+<div class="journey-overlay" id="journey-overlay" onclick="if(event.target===this)closeJourney()">
+  <div class="journey-card" id="journey-card"></div>
+</div>
+
+<!-- CONFETTI -->
+<canvas id="confetti-canvas"></canvas>
+
+<script>
+// ════════════════════════════════════════════
+// DATA (Pre-filled from "contract")
+// ════════════════════════════════════════════
+const C = {
+  name:'Sarah Chen', company:'Starbird Chicken', email:'sarah@starbird.com',
+  cfo:{name:'Michael Torres',email:'michael.torres@starbird.com'},
+  ap:{name:'Lisa Park',email:'lisa.park@starbird.com'},
+  brands:[{name:'Starbird Chicken',type:'Real',ownership:'Franchisor'},{name:'Starbird Wings',type:'Virtual',ownership:'Franchisor'}],
+  locations:52,
+  platforms:['DoorDash','Uber Eats','Grubhub'],
+  products:[{name:'Protect',price:'$150/loc/mo'},{name:'TrueROI',price:'$200/loc/mo'}],
+  billing:{entity:'Starbird Holdings LLC',address:'1420 El Camino Real, Menlo Park, CA 94025',segment:'QSR'},
+  fiscal:{yearStart:'January',period:'Calendar Month (12-period)'},
+  contract:{term:'24 months',mrr:'$18,200',acv:'$218,400'}
+};
+
+// ════════════════════════════════════════════
+// PHASE/STEP DEFINITIONS
+// ════════════════════════════════════════════
+const PHASES = [
+  {id:'welcome',name:'Welcome',steps:[
+    {id:'greeting',name:'Welcome',time:'1 min'},
+    {id:'survey',name:'Quick Setup',time:'1 min'},
+    {id:'routing',name:'Your Journey',time:'30 sec'}
+  ]},
+  {id:'access',name:'Platform Access',steps:[
+    {id:'overview',name:'Overview',time:'30 sec'},
+    {id:'doordash',name:'Connect DoorDash',time:'4 min'},
+    {id:'ubereats',name:'Connect Uber Eats',time:'4 min'},
+    {id:'grubhub',name:'Connect Grubhub',time:'4 min'},
+    {id:'summary',name:'Access Complete',time:'1 min'}
+  ]},
+  {id:'business',name:'Business Setup',steps:[
+    {id:'brands',name:'Brands',time:'2 min'},
+    {id:'locations',name:'Locations',time:'3 min'},
+    {id:'calendar',name:'Calendar & Periods',time:'1 min'},
+    {id:'people',name:'People & Roles',time:'2 min'},
+    {id:'integrations',name:'Integrations',time:'2 min'}
+  ]},
+  {id:'billing',name:'Billing & Payment',steps:[
+    {id:'entity',name:'Billing Entity',time:'1 min'},
+    {id:'structure',name:'Entity Structure',time:'1 min'},
+    {id:'products',name:'Products & Pricing',time:'1 min'},
+    {id:'payment',name:'Payment Method',time:'2 min'}
+  ]},
+  {id:'golive',name:'Go-Live',steps:[
+    {id:'review',name:'Final Review',time:'2 min'},
+    {id:'timeline',name:'Go-Live Timeline',time:'1 min'},
+    {id:'live',name:'You\'re Live!',time:'1 min'}
+  ]},
+  {id:'product',name:'Product Onboarding',steps:[
+    {id:'overview',name:'Module Overview',time:'1 min'},
+    {id:'protect',name:'Protect Setup',time:'3 min'},
+    {id:'trueroi',name:'TrueROI Setup',time:'3 min'},
+    {id:'complete',name:'Onboarding Complete',time:'1 min'}
+  ]}
+];
+
+// ════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════
+const S = {
+  phase:0, step:0, track:'admin',
+  agentOpen:false, completed:new Set(),
+  platformSub:{}, // sub-step state for platform connects
+  role:null, cfoProgress:0,
+  errorShown:false
+};
+
+function stepKey(p,s){ return `${p}-${s}`; }
+function curKey(){ return stepKey(S.phase,S.step); }
+function totalSteps(){ return PHASES.reduce((a,p)=>a+p.steps.length,0); }
+function completedCount(){ return S.completed.size; }
+function progress(){ return Math.round(completedCount()/totalSteps()*100); }
+
+// ════════════════════════════════════════════
+// AGENT SCRIPTS
+// ════════════════════════════════════════════
+const AGENT = {
+  'welcome-greeting':[
+    `Hi ${C.name.split(' ')[0]}! I'm your Loop onboarding assistant.`,
+    `Everything here is pre-filled from your signed contract. You'll mostly be confirming, not typing.`,
+    `Let's start with a couple quick questions to personalize your setup.`
+  ],
+  'welcome-survey':[
+    `This helps me customize the rest of your experience.`,
+    `Most of our customers finish setup in about 25 minutes.`
+  ],
+  'welcome-routing':[
+    `Here's your full journey. Two tracks run in parallel — you won't need to wait for ${C.cfo.name}.`,
+    `You can switch between tracks at any time using the sidebar.`
+  ],
+  'access-overview':[
+    `Platform access is the first big step. We need to connect your delivery platforms so Loop can start analyzing your data.`,
+    `I'll walk you through each one. It's the same 3-step process for each platform.`
+  ],
+  'access-doordash':[
+    `Let's start with DoorDash. Copy the email below and add it as a Business Admin on DoorDash.`,
+    `Make sure you select "Business Admin" — not "Store Manager." That's the most common issue I see.`
+  ],
+  'access-ubereats':[
+    `Same process for Uber Eats. Copy the email and add it on their portal.`,
+    `Uber Eats calls the role "Business Admin" in their user management section.`
+  ],
+  'access-grubhub':[
+    `Last platform! Grubhub uses the same process.`,
+    `After this, I'll verify all your stores are connected.`
+  ],
+  'access-summary':[
+    `Excellent! All three platforms are connected.`,
+    `${C.cfo.name} is working on billing setup in parallel. You can continue with Business Setup now.`
+  ],
+  'business-brands':[
+    `These brands came from your contract. Just confirm they look right, or edit if needed.`,
+    `You can also add new brands if anything's missing.`
+  ],
+  'business-locations':[
+    `I've auto-mapped your ${C.locations} locations to brands based on store names.`,
+    `Just confirm the mapping looks correct. You can reassign any location by clicking on it.`
+  ],
+  'business-calendar':[
+    `I've set the most common calendar configuration for QSR businesses.`,
+    `Most of our QSR customers use Calendar Month — you can change this if your organization uses a different fiscal period.`
+  ],
+  'business-people':[
+    `Here are the contacts from your contract. You can add more team members and set their roles and permissions.`,
+    `Each person will get an email invitation to access Loop.`
+  ],
+  'business-integrations':[
+    `Connecting your ERP, POS, and communication tools helps Loop provide richer insights.`,
+    `These aren't required right now — you can always connect them later from your dashboard.`
+  ],
+  'billing-entity':[
+    `Hi! I'm helping ${C.cfo.name} with billing setup.`,
+    `This billing entity was pulled from your signed contract. Just confirm it looks correct.`
+  ],
+  'billing-structure':[
+    `This is an important decision — it determines how your invoices are organized.`,
+    `Most QSR franchisors with ${C.locations}+ locations choose "Single Entity" for simplicity.`
+  ],
+  'billing-products':[
+    `These are the products and pricing from your signed contract.`,
+    `If anything looks off, flag it and your account manager will follow up within 1 business day.`
+  ],
+  'billing-payment':[
+    `Last step for billing! Choose how you'd like to pay.`,
+    `Credit card or ACH processes instantly. Wire transfer takes about 1 business day to set up.`
+  ],
+  'golive-review':[
+    `Great work! Both tracks are complete. Here's a summary of everything configured.`,
+    `Once you submit, our team verifies everything within 1-2 business days.`
+  ],
+  'golive-timeline':[
+    `Here's what happens next. You don't need to do anything during verification.`,
+    `I'll email you updates at each stage, and you can check back here anytime.`
+  ],
+  'golive-live':[
+    `Congratulations! Your dashboard is live!`,
+    `Your CS manager will reach out within the next few days. In the meantime, let's set up your products.`
+  ],
+  'product-overview':[
+    `Products are set up one at a time, starting with the fastest to value.`,
+    `Protect goes first — it starts working immediately with minimal configuration.`
+  ],
+  'product-protect':[
+    `I've pre-configured Protect based on your business segment (QSR) and location count.`,
+    `These are recommended thresholds. You can adjust them now or fine-tune later.`
+  ],
+  'product-trueroi':[
+    `TrueROI needs your fiscal calendar (already configured!) and a few report preferences.`,
+    `I've generated a recommended report template based on your segment.`
+  ],
+  'product-complete':[
+    `You're all set! Onboarding is complete.`,
+    `Your CS manager will schedule a strategic introduction call within the next week.`
+  ]
+};
+
+// ════════════════════════════════════════════
+// RENDERERS — One per step
+// ════════════════════════════════════════════
+
+function R(phase,step){
+  const k = PHASES[phase].id+'-'+PHASES[phase].steps[step].id;
+  const fn = RENDERERS[k];
+  return fn ? fn() : `<div class="fade-up"><p>Step: ${k}</p></div>`;
+}
+
+const RENDERERS = {};
+
+// ── WELCOME: GREETING ──
+RENDERERS['welcome-greeting'] = ()=>`
+<div class="fade-up" style="text-align:center;padding:40px 0 20px">
+  <div style="font-size:48px;margin-bottom:16px">&#128075;</div>
+  <h1 style="font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px">Welcome, ${C.name.split(' ')[0]}!</h1>
+  <p style="font-size:15px;color:var(--text-sec);margin-bottom:32px">Let's set up <strong>${C.company}</strong> on Loop.</p>
+  <div class="card prefilled" style="text-align:left;max-width:400px;margin:0 auto 24px">
+    <div class="card-head" style="font-size:13px">From Your Signed Contract</div>
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px"><span style="color:var(--text-sec)">Products</span><span><span style="background:var(--accent-soft);color:var(--accent-text);padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;margin-left:4px">Protect</span><span style="background:var(--teal-soft);color:var(--teal-text);padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;margin-left:4px">TrueROI</span></span></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-top:1px solid var(--border)"><span style="color:var(--text-sec)">Locations</span><strong>${C.locations} stores</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-top:1px solid var(--border)"><span style="color:var(--text-sec)">Estimated setup</span><strong>~25 minutes</strong></div>
+    </div>
+  </div>
+  <button class="btn btn-primary btn-lg" onclick="next()">Let's Get Started &rarr;</button>
+</div>`;
+
+// ── WELCOME: SURVEY ──
+RENDERERS['welcome-survey'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">Quick Setup <span class="time-pill">~1 min</span></div>
+  <div class="step-title">Tell us about yourself</div>
+  <div class="step-desc">We'll customize your setup based on your answers.</div>
+  <div class="choices" id="role-choices">
+    <div class="choice ${S.role==='admin'?'selected':''}" onclick="selectRole('admin')">
+      <div class="choice-icon">&#128295;</div>
+      <h3>Tech Admin</h3>
+      <p>I manage delivery platforms and operations</p>
+    </div>
+    <div class="choice ${S.role==='cfo'?'selected':''}" onclick="selectRole('cfo')">
+      <div class="choice-icon">&#128176;</div>
+      <h3>Finance Contact</h3>
+      <p>I handle billing and payments</p>
+    </div>
+    <div class="choice ${S.role==='both'?'selected':''}" onclick="selectRole('both')">
+      <div class="choice-icon">&#128100;</div>
+      <h3>I Handle Both</h3>
+      <p>I manage operations and finance</p>
+    </div>
+  </div>
+  <div class="banner info"><span class="banner-icon">&#128161;</span> Your delivery platforms are pre-filled from your contract: <strong>DoorDash, Uber Eats, Grubhub</strong></div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-primary" onclick="if(!S.role){alert('Please select your role');return;}next()">Continue &rarr;</button>
+  </div>
+</div>`;
+
+// ── WELCOME: ROUTING ──
+RENDERERS['welcome-routing'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">Your Journey <span class="time-pill">~30 sec</span></div>
+  <div class="step-title">Two tracks, running in parallel</div>
+  <div class="step-desc">You and ${C.cfo.name} each have a focused setup flow. Neither blocks the other.</div>
+  <div style="display:flex;gap:16px;margin:20px 0">
+    <div class="card" style="flex:1">
+      <div class="card-head"><span style="color:var(--accent)">&#9660;</span> Admin Track</div>
+      <div class="card-body">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">${C.name}</div>
+        <div style="font-size:12px;color:var(--text-sec);line-height:1.6">
+          1. Connect Delivery Platforms<br>
+          2. Configure Brands & Locations<br>
+          3. Set Up Calendar & People<br>
+          4. Connect Integrations
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--accent-text);background:var(--accent-soft);padding:6px 12px;border-radius:8px;text-align:center;font-weight:600">~20 min</div>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="card-head"><span style="color:var(--teal)">&#9660;</span> Finance Track</div>
+      <div class="card-body">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">${C.cfo.name}</div>
+        <div style="font-size:12px;color:var(--text-sec);line-height:1.6">
+          1. Verify Billing Entity<br>
+          2. Choose Entity Structure<br>
+          3. Confirm Products & Pricing<br>
+          4. Set Up Payment Method
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--teal-text);background:var(--teal-soft);padding:6px 12px;border-radius:8px;text-align:center;font-weight:600">~8 min</div>
+      </div>
+    </div>
+  </div>
+  <div class="banner info"><span class="banner-icon">&#128257;</span> You can switch between tracks anytime. Progress is saved automatically.</div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-primary" onclick="completeAndNext()">Start Admin Track &rarr;</button>
+  </div>
+</div>`;
+
+// ── ACCESS: OVERVIEW ──
+RENDERERS['access-overview'] = ()=>{
+  document.getElementById('sb-cross').style.display='block';
+  return `
+<div class="fade-up">
+  <div class="step-eyebrow">Platform Access <span class="time-pill">~12 min total</span></div>
+  <div class="step-title">Connect Your Delivery Platforms</div>
+  <div class="step-desc">We need access to your delivery platform accounts. Same 3-step process for each.</div>
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      ${['DoorDash','Uber Eats','Grubhub'].map((p,i)=>`
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;${i<2?'border-bottom:1px solid var(--border)':''}">
+        <div class="platform-logo ${['dd','ue','gh'][i]}">${p[0]}</div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:600">${p}</div><div style="font-size:12px;color:var(--text-sec)">~4 min</div></div>
+        <div style="font-size:12px;color:var(--text-light)">Pending</div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="banner success"><span class="banner-icon">&#128101;</span> <strong>${C.cfo.name}</strong> will receive a separate email to set up billing. You don't need to coordinate.</div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-primary" onclick="completeAndNext()">Start Connecting &rarr;</button>
+  </div>
+</div>`};
+
+// ── PLATFORM CONNECT (shared for dd/ue/gh) ──
+function renderPlatform(name, cls, idx){
+  const sub = S.platformSub[name] || 0;
+  const email = 'onboarding+'+C.company.toLowerCase().replace(/\s/g,'')+'@loop.ai';
+  if(sub===0) return `
+<div class="fade-up">
+  <div class="step-eyebrow">Connect ${name} <span class="time-pill">~4 min</span></div>
+  <div class="step-title">Step 1: Copy the access email</div>
+  <div class="step-desc">Add this email as a <strong>Business Admin</strong> on ${name}.</div>
+  <div class="copy-field" id="copy-field" onclick="copyEmail('${email}')">
+    <span class="copy-text">${email}</span>
+    <span class="copy-btn">TAP TO COPY</span>
+  </div>
+  <div class="banner warn"><span class="banner-icon">&#9888;&#65039;</span> Must be <strong>Business Admin</strong> role, not Store Manager. This is the #1 issue we see.</div>
+  <div style="font-size:12px;color:var(--text-light);margin-top:8px">Next: Add this email on ${name}'s portal</div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-primary" onclick="platformNext('${name}')">I've Copied It &rarr;</button>
+  </div>
+</div>`;
+  if(sub===1) return `
+<div class="fade-up">
+  <div class="step-eyebrow">Connect ${name} <span class="time-pill">~3 min</span></div>
+  <div class="step-title">Step 2: Add the email on ${name}</div>
+  <div class="step-desc">Follow these steps on ${name}'s portal:</div>
+  <div class="card">
+    <div class="card-body">
+      <ol style="font-size:13px;line-height:2;padding-left:18px;color:var(--text)">
+        <li>Open the <strong>${name} Merchant Portal</strong></li>
+        <li>Navigate to <strong>Users</strong> or <strong>Access Management</strong></li>
+        <li>Click <strong>Add User</strong>, paste the email, and select <strong>Business Admin</strong></li>
+      </ol>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--text-light);margin-top:8px">Next: I'll verify the connection automatically (~10 sec)</div>
+  <div class="step-actions">
+    <button class="btn btn-ghost" onclick="showError('${name}')">I Need Help</button>
+    <button class="btn btn-primary" onclick="platformNext('${name}')">I've Added It &rarr;</button>
+  </div>
+</div>`;
+  if(sub===2) return `
+<div class="fade-up">
+  <div class="step-eyebrow">Connect ${name} <span class="time-pill">~10 sec</span></div>
+  <div class="step-title">Step 3: Verifying connection...</div>
+  <div class="verify-list" id="verify-list">
+    <div class="verify-item" id="vi-0"><div class="vi-icon">&#9675;</div> Checking ${name} API...</div>
+    <div class="verify-item" id="vi-1"><div class="vi-icon">&#9675;</div> Verifying Business Admin role...</div>
+    <div class="verify-item" id="vi-2"><div class="vi-icon">&#9675;</div> Counting connected stores...</div>
+  </div>
+  <div id="verify-result"></div>
+</div>`;
+  // sub===3 = done (auto-navigated)
+}
+
+RENDERERS['access-doordash'] = ()=>renderPlatform('DoorDash','dd',0);
+RENDERERS['access-ubereats'] = ()=>renderPlatform('Uber Eats','ue',1);
+RENDERERS['access-grubhub'] = ()=>renderPlatform('Grubhub','gh',2);
+
+// ── ACCESS: SUMMARY ──
+RENDERERS['access-summary'] = ()=>`
+<div class="fade-up" style="text-align:center;padding:20px 0">
+  <div style="font-size:48px;margin-bottom:12px">&#127881;</div>
+  <div class="step-title" style="text-align:center">Platform Access Complete!</div>
+  <div class="step-desc" style="text-align:center;margin:0 auto 24px">All 3 platforms connected. ${C.locations} stores verified.</div>
+  <div class="card" style="text-align:left;max-width:440px;margin:0 auto 20px">
+    <div class="card-body" style="padding:0">
+      ${[{n:'DoorDash',c:'dd',s:22},{n:'Uber Eats',c:'ue',s:18},{n:'Grubhub',c:'gh',s:12}].map((p,i)=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;${i<2?'border-bottom:1px solid var(--border)':''}">
+        <div class="platform-logo ${p.c}" style="width:32px;height:32px;font-size:13px">${p.n[0]}</div>
+        <div style="flex:1;font-size:13px;font-weight:600">${p.n}</div>
+        <div style="font-size:12px;color:var(--green-text);font-weight:600">${p.s} stores &#10003;</div>
+      </div>`).join('')}
+    </div>
+    <div class="card-foot">
+      <span style="font-size:12px;color:var(--text-sec)">Total stores verified</span>
+      <span style="font-size:14px;font-weight:700;color:var(--green-text)">52 / 52 (100%)</span>
+    </div>
+  </div>
+  <div class="threshold-bar" style="max-width:440px;margin:0 auto 20px">
+    <div class="tb-labels"><span>0%</span><span style="color:var(--green-text);font-weight:600">Threshold: 80%</span><span>100%</span></div>
+    <div class="tb-track"><div class="tb-filled" style="width:100%"></div><div class="tb-marker" style="left:80%"></div></div>
+  </div>
+  <div class="banner success" style="max-width:440px;margin:0 auto 20px;text-align:left"><span class="banner-icon">&#9989;</span> Access threshold exceeded! Next: Business Setup (~10 min)</div>
+  <button class="btn btn-primary btn-lg" onclick="completeAndNext()">Continue to Business Setup &rarr;</button>
+</div>`;
+
+// ── BUSINESS: BRANDS ──
+RENDERERS['business-brands'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">Business Setup <span class="time-pill">~2 min</span></div>
+  <div class="step-title">Your Brands</div>
+  <div class="step-desc">These brands were imported from your contract. Confirm or edit as needed.</div>
+  <div class="banner success"><span class="banner-icon">&#128196;</span> Pre-filled from your signed contract</div>
+  ${C.brands.map((b,i)=>`
+  <div class="card prefilled">
+    <div class="card-head">${b.name} <span style="font-size:11px;font-weight:500;color:var(--text-light)">${b.type} Brand</span></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="fg"><div class="fl">Brand Name</div><input class="fi prefilled" value="${b.name}"></div>
+        <div class="fg"><div class="fl">Type</div><select class="fi prefilled"><option>${b.type}</option><option>Real</option><option>Virtual</option></select></div>
+        <div class="fg"><div class="fl">Ownership</div><select class="fi prefilled"><option>${b.ownership}</option><option>Franchisor</option><option>Franchisee</option><option>Fully Owned</option><option>CPA</option></select></div>
+        <div class="fg"><div class="fl">Locations</div><input class="fi prefilled" value="${i===0?'38':'14'}" readonly></div>
+      </div>
+    </div>
+  </div>`).join('')}
+  <button class="btn btn-ghost" style="margin-bottom:16px" onclick="alert('Add Brand form would appear here')">+ Add Brand</button>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-primary" onclick="completeAndNext()">Confirm Brands &rarr;</button>
+  </div>
+</div>`;
+
+// ── BUSINESS: LOCATIONS ──
+RENDERERS['business-locations'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">Business Setup <span class="time-pill">~3 min</span></div>
+  <div class="step-title">Location Mapping</div>
+  <div class="step-desc">${C.locations} locations auto-mapped to brands by store name. Confirm or reassign.</div>
+  <div class="banner success"><span class="banner-icon">&#128205;</span> Auto-mapped from delivery platform data</div>
+  <div class="card">
+    <div class="card-head">Location Summary <span style="font-size:12px;font-weight:500;color:var(--text-light)">${C.locations} locations</span></div>
+    <div class="card-body" style="padding:0">
+      <table class="data-table">
+        <thead><tr><th>Store</th><th>Platform</th><th>Brand</th><th>Region</th></tr></thead>
+        <tbody>
+          ${[
+            ['Starbird #001 Sunnyvale','DoorDash','Starbird Chicken','Bay Area'],
+            ['Starbird #002 Palo Alto','DoorDash','Starbird Chicken','Bay Area'],
+            ['Starbird #003 San Jose','Uber Eats','Starbird Chicken','Bay Area'],
+            ['Wings #001 Oakland','DoorDash','Starbird Wings','East Bay'],
+            ['Wings #002 Berkeley','Grubhub','Starbird Wings','East Bay'],
+          ].map(r=>`<tr><td style="font-weight:500">${r[0]}</td><td>${r[1]}</td><td><select class="fi prefilled" style="padding:4px 24px 4px 8px;font-size:11px">${C.brands.map(b=>`<option ${b.name===r[2]?'selected':''}>${b.name}</option>`).join('')}</select></td><td>${r[3]}</td></tr>`).join('')}
+          <tr><td colspan="4" style="text-align:center;color:var(--text-light);font-size:11px;padding:12px">... and ${C.locations-5} more locations</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-foot"><span style="font-size:12px;color:var(--text-sec)">Starbird Chicken: 38 &nbsp;|&nbsp; Starbird Wings: 14</span><button class="btn btn-ghost" style="padding:6px 14px;font-size:11px">View All</button></div>
+  </div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-primary" onclick="completeAndNext()">Confirm Mapping &rarr;</button>
+  </div>
+</div>`;
+
+// ── BUSINESS: CALENDAR ──
+RENDERERS['business-calendar'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">Business Setup <span class="time-pill">~1 min</span></div>
+  <div class="step-title">Calendar & Periods</div>
+  <div class="step-desc">Default configuration for QSR businesses. Confirm or customize.</div>
+  <div class="banner info"><span class="banner-icon">&#128197;</span> 80% of QSR businesses use this exact configuration. Just confirm if it looks right.</div>
+  <div class="card prefilled">
+    <div class="card-head">Fiscal Calendar <span style="font-size:11px;color:var(--green-text)">Recommended</span></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="fg"><div class="fl">Fiscal Year Start</div><select class="fi prefilled"><option>January</option><option>February</option><option>March</option><option>April</option><option>July</option><option>October</option></select></div>
+        <div class="fg"><div class="fl">Period Type</div><select class="fi prefilled"><option>Calendar Month (12-period)</option><option>4-4-5</option><option>4-5-4</option><option>5-4-4</option><option>Custom</option></select></div>
+        <div class="fg"><div class="fl">Comp Store Eligibility</div><select class="fi prefilled"><option>12 months from open date</option><option>6 months from open date</option><option>18 months from open date</option></select></div>
+        <div class="fg"><div class="fl">Fiscal Year</div><input class="fi prefilled" value="2026" readonly></div>
+      </div>
+    </div>
+  </div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-primary" onclick="completeAndNext()">Confirm Calendar &rarr;</button>
+  </div>
+</div>`;
+
+// ── BUSINESS: PEOPLE ──
+RENDERERS['business-people'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">Business Setup <span class="time-pill">~2 min</span></div>
+  <div class="step-title">People & Roles</div>
+  <div class="step-desc">Key contacts from your contract. Add more team members as needed.</div>
+  <div class="banner success"><span class="banner-icon">&#128101;</span> Pre-filled from your signed contract</div>
+  ${[
+    {name:C.name,email:C.email,role:'Owner',access:'All Brands',perm:'Full Access'},
+    {name:C.cfo.name,email:C.cfo.email,role:'Finance',access:'All Brands',perm:'Reports + Billing'},
+    {name:C.ap.name,email:C.ap.email,role:'AP Contact',access:'All Brands',perm:'Billing Only'}
+  ].map(p=>`
+  <div class="card prefilled">
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="fg"><div class="fl">Name</div><input class="fi prefilled" value="${p.name}"></div>
+        <div class="fg"><div class="fl">Email</div><input class="fi prefilled" value="${p.email}"></div>
+        <div class="fg"><div class="fl">Role</div><select class="fi prefilled"><option>${p.role}</option><option>Owner</option><option>Operations</option><option>Marketing</option><option>Finance</option><option>GM</option></select></div>
+        <div class="fg"><div class="fl">Brand Access</div><select class="fi prefilled"><option>${p.access}</option>${C.brands.map(b=>`<option>${b.name}</option>`).join('')}</select></div>
+      </div>
+    </div>
+  </div>`).join('')}
+  <button class="btn btn-ghost" style="margin-bottom:16px" onclick="alert('Add Person form would appear here')">+ Add Team Member</button>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-primary" onclick="completeAndNext()">Confirm Team &rarr;</button>
+  </div>
+</div>`;
+
+// ── BUSINESS: INTEGRATIONS ──
+RENDERERS['business-integrations'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">Business Setup <span class="time-pill">~2 min</span></div>
+  <div class="step-title">Integrations</div>
+  <div class="step-desc">Connect your business tools for richer insights. You can do this later too.</div>
+  ${[
+    {cat:'Accounting & ERP',items:['R365','QuickBooks','Xero','Sage Intacct'],rec:true},
+    {cat:'Point of Sale',items:['Toast','Square','Aloha','QSRSoft'],rec:true},
+    {cat:'Communication',items:['Slack','Microsoft Teams','Email'],rec:false}
+  ].map(c=>`
+  <div class="card">
+    <div class="card-head">${c.cat} ${c.rec?'<span style="font-size:10px;color:var(--orange-text);background:var(--orange-soft);padding:2px 8px;border-radius:8px">Recommended</span>':''}</div>
+    <div class="card-body">
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${c.items.map(it=>`<button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="this.classList.toggle('active');this.style.background=this.classList.contains('active')?'var(--accent-soft)':'';this.style.borderColor=this.classList.contains('active')?'var(--accent)':''">${it}</button>`).join('')}
+      </div>
+    </div>
+  </div>`).join('')}
+  <div class="banner info"><span class="banner-icon">&#128161;</span> You can connect these later from your dashboard. This doesn't block your setup.</div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-ghost" onclick="completeAndNext()">Skip for Now</button>
+    <button class="btn btn-primary" onclick="completeAndNext()">Continue &rarr;</button>
+  </div>
+</div>`;
+
+// ── BILLING: ENTITY ──
+RENDERERS['billing-entity'] = ()=>`
+<div class="fade-up">
+  <div class="track-switch">
+    <div class="track-tab" onclick="switchTrack('admin')">Admin Track</div>
+    <div class="track-tab active">Finance Track</div>
+  </div>
+  <div class="step-eyebrow" style="color:var(--teal-text)">Billing & Payment <span class="time-pill">~1 min</span></div>
+  <div class="step-title">Verify Your Billing Entity</div>
+  <div class="step-desc">This information comes from your signed contract. Please confirm it's correct.</div>
+  <div class="banner success"><span class="banner-icon">&#128196;</span> Pre-filled from your signed contract</div>
+  <div class="card prefilled">
+    <div class="card-head">Billing Entity</div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="fg full"><div class="fl">Entity Name</div><input class="fi prefilled" value="${C.billing.entity}"></div>
+        <div class="fg full"><div class="fl">Address</div><input class="fi prefilled" value="${C.billing.address}"></div>
+        <div class="fg"><div class="fl">Segment</div><input class="fi prefilled" value="${C.billing.segment}" readonly></div>
+        <div class="fg"><div class="fl">AP Contact</div><input class="fi prefilled" value="${C.ap.name}"></div>
+        <div class="fg full"><div class="fl">AP Email</div><input class="fi prefilled" value="${C.ap.email}"></div>
+      </div>
+    </div>
+  </div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-ghost" onclick="alert('Your account manager will follow up within 1 business day.')">Something Needs Updating</button>
+    <button class="btn btn-teal" onclick="completeAndNext()">Looks Correct &rarr;</button>
+  </div>
+</div>`;
+
+// ── BILLING: STRUCTURE ──
+RENDERERS['billing-structure'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow" style="color:var(--teal-text)">Billing & Payment <span class="time-pill">~1 min</span></div>
+  <div class="step-title">How should we structure your billing?</div>
+  <div class="step-desc">This determines how your invoices are organized across ${C.locations} locations.</div>
+  <div class="choices" id="structure-choices">
+    <div class="choice" onclick="selectStructure(this,0)">
+      <div class="choice-icon">&#128203;</div>
+      <h3>Single Entity</h3>
+      <p>All locations billed under one entity. One consolidated invoice.</p>
+    </div>
+    <div class="choice" onclick="selectStructure(this,1)">
+      <div class="choice-icon">&#128200;</div>
+      <h3>Per-Location</h3>
+      <p>Each location gets its own invoice. Setup within 1 business day.</p>
+    </div>
+    <div class="choice" onclick="selectStructure(this,2)">
+      <div class="choice-icon">&#128736;</div>
+      <h3>Custom Grouping</h3>
+      <p>Our finance team will reach out for a brief call. Doesn't block your setup.</p>
+    </div>
+  </div>
+  <div class="banner info"><span class="banner-icon">&#128161;</span> Most QSR franchisors with 50+ locations choose <strong>Single Entity</strong> for simplicity.</div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-teal" onclick="completeAndNext()">Continue &rarr;</button>
+  </div>
+</div>`;
+
+// ── BILLING: PRODUCTS ──
+RENDERERS['billing-products'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow" style="color:var(--teal-text)">Billing & Payment <span class="time-pill">~1 min</span></div>
+  <div class="step-title">Products & Pricing</div>
+  <div class="step-desc">Please confirm the products and pricing from your signed contract.</div>
+  <div class="banner success"><span class="banner-icon">&#128196;</span> Pre-filled from your signed contract</div>
+  <div class="card prefilled">
+    <div class="card-head">Contract Summary</div>
+    <div class="card-body" style="padding:0">
+      <table class="data-table">
+        <thead><tr><th>Product</th><th>Price</th><th>Locations</th><th>Monthly</th></tr></thead>
+        <tbody>
+          <tr><td><span style="background:var(--accent-soft);color:var(--accent-text);padding:2px 10px;border-radius:8px;font-size:11px;font-weight:600">Protect</span></td><td>$150/loc/mo</td><td>${C.locations}</td><td style="font-weight:600">$7,800</td></tr>
+          <tr><td><span style="background:var(--teal-soft);color:var(--teal-text);padding:2px 10px;border-radius:8px;font-size:11px;font-weight:600">TrueROI</span></td><td>$200/loc/mo</td><td>${C.locations}</td><td style="font-weight:600">$10,400</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-foot">
+      <div style="font-size:12px;color:var(--text-sec)">
+        <div>MRR: <strong>${C.contract.mrr}</strong> &nbsp;|&nbsp; ACV: <strong>${C.contract.acv}</strong></div>
+        <div style="margin-top:2px">Term: <strong>${C.contract.term}</strong></div>
+      </div>
+    </div>
+  </div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-ghost" onclick="alert('Your account manager will follow up within 1 business day.')">This Doesn't Look Right</button>
+    <button class="btn btn-teal" onclick="completeAndNext()">Confirmed &rarr;</button>
+  </div>
+</div>`;
+
+// ── BILLING: PAYMENT ──
+RENDERERS['billing-payment'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow" style="color:var(--teal-text)">Billing & Payment <span class="time-pill">~2 min</span></div>
+  <div class="step-title">Payment Method</div>
+  <div class="step-desc">Choose how you'd like to pay for Loop services.</div>
+  <div class="choices">
+    <div class="choice" onclick="selectPayment(this,0)" style="flex:1">
+      <div class="choice-icon">&#128179;</div>
+      <h3>Credit Card / ACH</h3>
+      <p>Instant setup via secure payment portal. Processed immediately.</p>
+      <div style="margin-top:8px;font-size:10px;color:var(--green-text);font-weight:600">RECOMMENDED</div>
+    </div>
+    <div class="choice" onclick="selectPayment(this,1)" style="flex:1">
+      <div class="choice-icon">&#127974;</div>
+      <h3>Wire Transfer</h3>
+      <p>Wire instructions sent to ${C.ap.name} within 1 business day.</p>
+      <div style="margin-top:8px;font-size:10px;color:var(--text-light)">~1 business day</div>
+    </div>
+  </div>
+  <div id="payment-verify" style="display:none">
+    <div class="verify-list" id="payment-verify-list">
+      <div class="verify-item" id="pvi-0"><div class="vi-icon">&#9675;</div> Processing payment method...</div>
+      <div class="verify-item" id="pvi-1"><div class="vi-icon">&#9675;</div> Validating account...</div>
+      <div class="verify-item" id="pvi-2"><div class="vi-icon">&#9675;</div> Activating invoicing...</div>
+    </div>
+  </div>
+  <div class="step-actions" id="payment-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-teal" onclick="runPaymentVerify()">Set Up Payment &rarr;</button>
+  </div>
+</div>`;
+
+// ── GOLIVE: REVIEW ──
+RENDERERS['golive-review'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">Go-Live <span class="time-pill">~2 min</span></div>
+  <div class="step-title">Final Review</div>
+  <div class="step-desc">Summary of everything configured across both tracks.</div>
+  <div class="card">
+    <div class="card-head">Admin Track Summary</div>
+    <div class="card-body" style="font-size:13px;line-height:2">
+      <div style="display:flex;justify-content:space-between"><span>Delivery Platforms</span><strong style="color:var(--green-text)">3 connected (52 stores) &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Brands</span><strong>${C.brands.length} confirmed &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Locations</span><strong>${C.locations} mapped &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Calendar</span><strong>Calendar Month (Jan) &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Team Members</span><strong>3 configured &#10003;</strong></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head">Finance Track Summary</div>
+    <div class="card-body" style="font-size:13px;line-height:2">
+      <div style="display:flex;justify-content:space-between"><span>Billing Entity</span><strong style="color:var(--green-text)">${C.billing.entity} &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Structure</span><strong>Single Entity &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Products</span><strong>Protect + TrueROI &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Payment</span><strong style="color:var(--green-text)">Credit Card &#10003;</strong></div>
+    </div>
+  </div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-primary btn-lg" onclick="completeAndNext()">Submit for Verification &rarr;</button>
+  </div>
+</div>`;
+
+// ── GOLIVE: TIMELINE ──
+RENDERERS['golive-timeline'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">Go-Live <span class="time-pill">~1 min</span></div>
+  <div class="step-title">What Happens Next</div>
+  <div class="step-desc">You don't need to do anything during verification. We'll keep you updated.</div>
+  <div class="card">
+    <div class="card-body" style="padding:20px">
+      ${[
+        {day:'Today',title:'Both tracks submitted',desc:'Your configuration is being reviewed.',status:'done'},
+        {day:'Day 1-2',title:'Operations QC',desc:'Automated checks + manual review by our team.',status:'active'},
+        {day:'Day 2-3',title:'Dashboard access granted',desc:'You\'ll receive an email with your login.',status:'pending'},
+        {day:'Day 3-5',title:'CS manager introduction',desc:'A brief strategic call (15 min, not a product walkthrough).',status:'pending'},
+        {day:'Day 5+',title:'Product onboarding begins',desc:'Guided setup for Protect, then TrueROI.',status:'pending'}
+      ].map((t,i)=>`
+      <div style="display:flex;gap:14px;${i<4?'padding-bottom:20px;':''};position:relative">
+        ${i<4?`<div style="position:absolute;left:15px;top:36px;width:2px;height:calc(100% - 16px);background:${t.status==='done'?'var(--green)':'var(--border)'}"></div>`:''}
+        <div style="width:32px;height:32px;border-radius:50%;background:${t.status==='done'?'var(--green)':t.status==='active'?'var(--accent)':'var(--bg)'};border:2px solid ${t.status==='done'?'var(--green)':t.status==='active'?'var(--accent)':'var(--border)'};display:flex;align-items:center;justify-content:center;color:${t.status==='pending'?'var(--text-light)':'white'};font-size:12px;font-weight:700;flex-shrink:0;z-index:1">${t.status==='done'?'&#10003;':i+1}</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--text-light);font-weight:600">${t.day}</div>
+          <div style="font-size:14px;font-weight:600;${t.status==='active'?'color:var(--accent-text)':''}">${t.title}</div>
+          <div style="font-size:12px;color:var(--text-sec)">${t.desc}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="banner info"><span class="banner-icon">&#128232;</span> You'll receive email updates at each stage. You can also check back here anytime.</div>
+  <div class="step-actions">
+    <button class="btn btn-primary" onclick="showLiveMilestone()">Continue &rarr;</button>
+  </div>
+</div>`;
+
+// ── GOLIVE: LIVE ──
+RENDERERS['golive-live'] = ()=>`
+<div class="fade-up" style="text-align:center;padding:40px 0">
+  <div style="font-size:64px;margin-bottom:16px">&#127881;</div>
+  <div class="step-title" style="font-size:28px;text-align:center">You're Live on Loop!</div>
+  <div class="step-desc" style="text-align:center;margin:0 auto 32px">Your dashboard is ready. Your CS manager will reach out soon.</div>
+  <div style="display:flex;gap:12px;justify-content:center;margin-bottom:24px">
+    <button class="btn btn-primary btn-lg" onclick="completeAndNext()">Set Up Products &rarr;</button>
+    <button class="btn btn-ghost btn-lg" onclick="alert('Dashboard would open here')">Explore Dashboard</button>
+  </div>
+</div>`;
+
+// ── PRODUCT: OVERVIEW ──
+RENDERERS['product-overview'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">Product Onboarding <span class="time-pill">~6 min</span></div>
+  <div class="step-title">Set Up Your Products</div>
+  <div class="step-desc">Products are activated one at a time, starting with the fastest to deliver value.</div>
+  <div class="banner info"><span class="banner-icon">&#128161;</span> Each product builds on the previous one. This sequence gives you the fastest path to insights.</div>
+  ${[
+    {name:'Protect',desc:'Error detection and recovery across all delivery platforms.',time:'~3 min',status:'Ready',color:'accent'},
+    {name:'TrueROI',desc:'True cost analysis and profitability insights per location.',time:'~3 min',status:'After Protect',color:'teal'},
+    {name:'Balance',desc:'Financial reconciliation across all revenue streams.',time:'Not purchased',status:'Locked',color:'text-light'},
+    {name:'Marketing',desc:'Campaign performance and customer acquisition analytics.',time:'Not purchased',status:'Locked',color:'text-light'}
+  ].map((p,i)=>`
+  <div class="card" style="${i>=2?'opacity:.5':''}">
+    <div class="card-body" style="display:flex;align-items:center;gap:16px">
+      <div style="width:40px;height:40px;border-radius:12px;background:var(--${p.color}-soft,var(--bg));color:var(--${p.color}-text,var(--text-light));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">${i+1}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${p.name}</div>
+        <div style="font-size:12px;color:var(--text-sec)">${p.desc}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;font-weight:600;color:var(--${p.status==='Ready'?'green':p.status==='Locked'?'text-light':'accent'}-text,var(--text-light))">${p.status}</div>
+        <div style="font-size:11px;color:var(--text-light)">${p.time}</div>
+      </div>
+    </div>
+  </div>`).join('')}
+  <div class="step-actions">
+    <button class="btn btn-primary" onclick="completeAndNext()">Start Protect Setup &rarr;</button>
+  </div>
+</div>`;
+
+// ── PRODUCT: PROTECT ──
+RENDERERS['product-protect'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">Protect Setup <span class="time-pill">~3 min</span></div>
+  <div class="step-title">Configure Protect</div>
+  <div class="step-desc">AI-generated configuration based on your QSR profile. Review and confirm.</div>
+  <div class="banner success"><span class="banner-icon">&#129302;</span> AI-generated defaults based on your business segment and location count</div>
+  <div class="card prefilled">
+    <div class="card-head">Error Detection Thresholds</div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="fg"><div class="fl">Missing Order Alert</div><select class="fi prefilled"><option>$25+ (Recommended for QSR)</option><option>$15+</option><option>$50+</option><option>$100+</option></select></div>
+        <div class="fg"><div class="fl">Commission Overcharge</div><select class="fi prefilled"><option>1%+ variance (Recommended)</option><option>0.5%+</option><option>2%+</option></select></div>
+        <div class="fg"><div class="fl">Menu Price Mismatch</div><select class="fi prefilled"><option>Any difference (Recommended)</option><option>$1+ difference</option><option>$5+ difference</option></select></div>
+        <div class="fg"><div class="fl">Downtime Alert</div><select class="fi prefilled"><option>30+ minutes (Recommended)</option><option>15+ minutes</option><option>60+ minutes</option></select></div>
+      </div>
+    </div>
+  </div>
+  <div class="card prefilled">
+    <div class="card-head">Recovery Automation</div>
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+        <div><div style="font-size:13px;font-weight:500">Auto-file missing order claims</div><div style="font-size:11px;color:var(--text-light)">Automatically submit claims for detected missing orders</div></div>
+        <div style="width:40px;height:22px;background:var(--accent);border-radius:11px;position:relative;cursor:pointer"><div style="width:16px;height:16px;border-radius:50%;background:white;position:absolute;top:3px;right:3px;box-shadow:0 1px 3px rgba(0,0,0,.15)"></div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border);margin-top:6px">
+        <div><div style="font-size:13px;font-weight:500">Commission dispute auto-filing</div><div style="font-size:11px;color:var(--text-light)">Automatically dispute overcharges above threshold</div></div>
+        <div style="width:40px;height:22px;background:var(--accent);border-radius:11px;position:relative;cursor:pointer"><div style="width:16px;height:16px;border-radius:50%;background:white;position:absolute;top:3px;right:3px;box-shadow:0 1px 3px rgba(0,0,0,.15)"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-primary" onclick="completeAndNext()">Activate Protect &rarr;</button>
+  </div>
+</div>`;
+
+// ── PRODUCT: TRUEROI ──
+RENDERERS['product-trueroi'] = ()=>`
+<div class="fade-up">
+  <div class="step-eyebrow">TrueROI Setup <span class="time-pill">~3 min</span></div>
+  <div class="step-title">Configure TrueROI</div>
+  <div class="step-desc">Cost analysis and profitability insights. Uses your calendar configuration.</div>
+  <div class="banner success"><span class="banner-icon">&#129302;</span> AI-generated report template for QSR businesses</div>
+  <div class="card prefilled">
+    <div class="card-head">Report Configuration</div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="fg"><div class="fl">Default Report View</div><select class="fi prefilled"><option>By Location (Recommended)</option><option>By Brand</option><option>By Region</option></select></div>
+        <div class="fg"><div class="fl">Comparison Period</div><select class="fi prefilled"><option>Prior Period (Recommended)</option><option>Same Period Last Year</option><option>Custom</option></select></div>
+        <div class="fg"><div class="fl">Cost Categories</div><select class="fi prefilled"><option>Standard QSR (Recommended)</option><option>Full Service</option><option>Custom</option></select></div>
+        <div class="fg"><div class="fl">Report Frequency</div><select class="fi prefilled"><option>Weekly + Monthly (Recommended)</option><option>Weekly Only</option><option>Monthly Only</option><option>Daily</option></select></div>
+      </div>
+    </div>
+  </div>
+  <div class="card prefilled">
+    <div class="card-head">Auto-Generated Reports</div>
+    <div class="card-body">
+      ${['P&L by Location','Commission Analysis','Platform Comparison','Comp Store Performance'].map(r=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px">
+        <span style="color:var(--green)">&#10003;</span> ${r}
+      </div>`).join('')}
+      <div style="font-size:11px;color:var(--text-light);margin-top:8px">Reports will generate automatically once data flows in (~24-48 hours)</div>
+    </div>
+  </div>
+  <div class="step-actions">
+    <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
+    <button class="btn btn-primary" onclick="completeAndNext()">Activate TrueROI &rarr;</button>
+  </div>
+</div>`;
+
+// ── PRODUCT: COMPLETE ──
+RENDERERS['product-complete'] = ()=>`
+<div class="fade-up" style="text-align:center;padding:40px 0">
+  <div style="font-size:64px;margin-bottom:16px">&#127942;</div>
+  <div class="step-title" style="font-size:28px;text-align:center">Onboarding Complete!</div>
+  <div class="step-desc" style="text-align:center;margin:0 auto 24px">You're all set. Here's what happens next.</div>
+  <div class="card" style="text-align:left;max-width:460px;margin:0 auto 24px">
+    <div class="card-body" style="font-size:13px;line-height:2.2">
+      <div style="display:flex;gap:10px"><span style="color:var(--green)">&#10003;</span> <strong>Protect</strong> is live — monitoring all ${C.locations} stores</div>
+      <div style="display:flex;gap:10px"><span style="color:var(--green)">&#10003;</span> <strong>TrueROI</strong> reports generating within 24-48 hours</div>
+      <div style="display:flex;gap:10px"><span style="color:var(--accent)">&#128197;</span> <strong>CS Manager</strong> will schedule intro call this week</div>
+      <div style="display:flex;gap:10px"><span style="color:var(--accent)">&#128200;</span> <strong>First insights</strong> available in your dashboard now</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;justify-content:center">
+    <button class="btn btn-primary btn-lg" onclick="alert('Dashboard would open here')">Go to Dashboard &rarr;</button>
+  </div>
+  <div style="margin-top:32px;font-size:12px;color:var(--text-light)">
+    Questions? Your CS manager or our AI assistant are always available to help.
+  </div>
+</div>`;
+
+// ════════════════════════════════════════════
+// ENGINE
+// ════════════════════════════════════════════
+
+function navigate(phase, step){
+  S.phase = phase; S.step = step;
+  const ph = PHASES[phase], st = ph.steps[step];
+  // Update topbar
+  document.getElementById('tb-step').innerHTML = `<strong>${st.name}</strong> <span class="time-pill">~${st.time}</span>`;
+  // Render main content
+  document.getElementById('main-inner').innerHTML = R(phase, step);
+  document.getElementById('main-scroll').scrollTop = 0;
+  // Update sidebar
+  updateSidebar();
+  // Play agent
+  playAgentScript(ph.id+'-'+st.id);
+  // Auto-trigger verification for platform steps
+  if(ph.id==='access' && ['doordash','ubereats','grubhub'].includes(st.id)){
+    const pname = {'doordash':'DoorDash','ubereats':'Uber Eats','grubhub':'Grubhub'}[st.id];
+    if((S.platformSub[pname]||0)===2) setTimeout(()=>runVerification(pname),500);
+  }
+}
+
+function updateSidebar(){
+  const pct = progress();
+  document.getElementById('sb-pct').textContent = pct+'%';
+  document.getElementById('sb-label').textContent = completedCount()+' of '+totalSteps()+' steps done';
+  document.getElementById('sb-fill').style.width = pct+'%';
+  // Update cross-track status
+  if(S.cfoProgress>0){
+    document.getElementById('cross-status').textContent = `${Math.min(S.cfoProgress,100)}% complete.`;
+  }
+  // Build nav
+  let html='';
+  let globalIdx=0;
+  PHASES.forEach((ph,pi)=>{
+    const phDone = ph.steps.every((_,si)=>S.completed.has(stepKey(pi,si)));
+    const phActive = pi===S.phase;
+    const isLocked = (ph.id==='golive' && !allPreGoLiveDone()) || (ph.id==='product' && !S.completed.has(stepKey(4,2)));
+    html+=`<div class="sb-phase">`;
+    html+=`<div class="sb-phase-head ${phActive?'active':''}" onclick="togglePhaseNav(${pi})">`;
+    html+=`<span class="ph-dot ${phDone?'done':phActive?'active':isLocked?'locked':''}"></span>`;
+    html+=`${ph.name}`;
+    if(ph.id==='billing') html+=` <span style="font-size:10px;color:var(--teal-text);margin-left:auto">CFO</span>`;
+    if(isLocked) html+=` <span style="font-size:10px;color:var(--text-light);margin-left:auto">&#128274;</span>`;
+    html+=`</div>`;
+    ph.steps.forEach((st,si)=>{
+      const key = stepKey(pi,si);
+      const isDone = S.completed.has(key);
+      const isActive = pi===S.phase && si===S.step;
+      html+=`<div class="sb-step ${isDone?'done':isActive?'active':''}" onclick="${isLocked?'':'navigateTo('+pi+','+si+')'}" style="${isLocked?'opacity:.4;cursor:default':''}">`;
+      html+=`<span class="st-dot"></span> ${st.name}`;
+      html+=`</div>`;
+      globalIdx++;
+    });
+    html+=`</div>`;
+  });
+  document.getElementById('sb-nav').innerHTML = html;
+}
+
+function allPreGoLiveDone(){
+  // Check all access, business, billing steps
+  for(let pi=1;pi<=3;pi++){
+    for(let si=0;si<PHASES[pi].steps.length;si++){
+      if(!S.completed.has(stepKey(pi,si))) return false;
+    }
+  }
+  return true;
+}
+
+function next(){
+  const ph = PHASES[S.phase];
+  if(S.step < ph.steps.length-1){
+    navigate(S.phase, S.step+1);
+  } else if(S.phase < PHASES.length-1){
+    navigate(S.phase+1, 0);
+  }
+}
+
+function prev(){
+  if(S.step > 0){
+    navigate(S.phase, S.step-1);
+  } else if(S.phase > 0){
+    const prevPh = PHASES[S.phase-1];
+    navigate(S.phase-1, prevPh.steps.length-1);
+  }
+}
+
+function completeAndNext(){
+  S.completed.add(curKey());
+  // Simulate CFO progress when admin completes steps
+  if(S.phase>=1 && S.phase<=2) S.cfoProgress = Math.min(S.cfoProgress+25, 100);
+  // Show milestone at key points
+  const k = PHASES[S.phase].id+'-'+PHASES[S.phase].steps[S.step].id;
+  if(k==='access-summary'){
+    showMilestone('Platform Access Complete!','All 3 delivery platforms connected with 52 stores verified.','Next: Business Setup (~10 min)');
+    return;
+  }
+  if(k==='business-integrations'){
+    showMilestone('Business Setup Complete!','Brands, locations, calendar, people, and integrations configured.','Next: Review billing setup or continue to Go-Live');
+    return;
+  }
+  if(k==='billing-payment'){
+    showMilestone('Billing Setup Complete!','Entity verified, structure selected, payment method configured.','Next: Final Review and Go-Live');
+    return;
+  }
+  next();
+}
+
+function navigateTo(phase,step){
+  navigate(phase,step);
+}
+
+// ── ROLE SELECTION ──
+function selectRole(role){
+  S.role = role;
+  document.querySelectorAll('#role-choices .choice').forEach(c=>c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+}
+
+// ── STRUCTURE SELECTION ──
+function selectStructure(el,idx){
+  document.querySelectorAll('#structure-choices .choice').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── PAYMENT ──
+function selectPayment(el,idx){
+  document.querySelectorAll('.choice').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function runPaymentVerify(){
+  document.getElementById('payment-verify').style.display='block';
+  document.getElementById('payment-actions').style.display='none';
+  runVerifySequence(['pvi-0','pvi-1','pvi-2'],()=>{
+    document.getElementById('payment-verify').insertAdjacentHTML('afterend',`
+      <div class="banner success fade-up" style="margin-top:16px"><span class="banner-icon">&#10003;</span> Payment method configured successfully! Invoicing is now active.</div>
+      <div class="step-actions fade-up"><button class="btn btn-teal" onclick="completeAndNext()">Continue &rarr;</button></div>
+    `);
+  });
+}
+
+// ── PLATFORM CONNECT ENGINE ──
+function platformNext(name){
+  const sub = (S.platformSub[name]||0)+1;
+  S.platformSub[name] = sub;
+  const phId = PHASES[S.phase].steps[S.step].id;
+  navigate(S.phase, S.step); // re-render
+  if(sub===2) setTimeout(()=>runVerification(name),500);
+}
+
+function runVerification(name){
+  const stores = {'DoorDash':22,'Uber Eats':18,'Grubhub':12}[name]||15;
+  runVerifySequence(['vi-0','vi-1','vi-2'],()=>{
+    document.getElementById('verify-result').innerHTML=`
+      <div class="card fade-up" style="border-color:var(--green);margin-top:16px">
+        <div class="card-body" style="display:flex;align-items:center;gap:14px">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--green-soft);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--green)">&#10003;</div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--green-text)">${name} Connected!</div>
+            <div style="font-size:13px;color:var(--text-sec)">${stores} stores verified</div>
+          </div>
+        </div>
+      </div>
+      <div class="step-actions fade-up">
+        <button class="btn btn-primary" onclick="S.platformSub['${name}']=3;S.completed.add(curKey());next()">Continue &rarr;</button>
+      </div>`;
+    addAgentMessage(`${name} is connected with ${stores} stores. Nice work!`);
+  });
+}
+
+function runVerifySequence(ids, callback){
+  ids.forEach((id,i)=>{
+    setTimeout(()=>{
+      const el=document.getElementById(id);
+      if(!el)return;
+      el.classList.add('checking');
+      el.querySelector('.vi-icon').innerHTML='&#9696;';
+    }, i*1200);
+    setTimeout(()=>{
+      const el=document.getElementById(id);
+      if(!el)return;
+      el.classList.remove('checking');
+      el.classList.add('done');
+      el.querySelector('.vi-icon').innerHTML='&#10003;';
+      if(i===ids.length-1) setTimeout(callback,400);
+    }, (i+1)*1200);
+  });
+}
+
+// ── COPY EMAIL ──
+function copyEmail(email){
+  const field = document.getElementById('copy-field');
+  if(field){
+    field.classList.add('copied');
+    field.querySelector('.copy-btn').textContent='COPIED!';
+    navigator.clipboard?.writeText(email).catch(()=>{});
+    addAgentMessage('Email copied! Now head to the platform portal to add it.');
+  }
+}
+
+// ── ERROR FLOW ──
+function showError(platform){
+  S.errorShown = true;
+  document.getElementById('main-inner').innerHTML=`
+<div class="fade-up">
+  <div class="step-eyebrow" style="color:var(--red-text)">Troubleshooting <span class="time-pill">Connect ${platform}</span></div>
+  <div class="step-title">Common Issue: Wrong Role</div>
+  <div class="error-card">
+    <div class="error-section">
+      <div class="error-label">What Happened</div>
+      <p>${platform} shows the role as "Store Manager" instead of "Business Admin."</p>
+    </div>
+    <div class="error-section">
+      <div class="error-label">How to Fix</div>
+      <ol>
+        <li>Open the <strong>${platform} Merchant Portal</strong></li>
+        <li>Go to <strong>Users</strong> &rarr; find <strong>onboarding+starbirdchicken@loop.ai</strong></li>
+        <li>Change the role to <strong>Business Admin</strong></li>
+      </ol>
+    </div>
+    <div class="error-section">
+      <div class="error-label">After You Fix This</div>
+      <p>Come back here and tap "I've Fixed It" &mdash; I'll re-verify automatically (~10 sec).</p>
+    </div>
+  </div>
+  <div class="step-actions">
+    <button class="btn btn-ghost" onclick="alert('Support: schedule a call at support@loop.ai')">Schedule Support Call</button>
+    <button class="btn btn-primary" onclick="S.errorShown=false;platformNext('${platform}')">I've Fixed It &rarr;</button>
+  </div>
+</div>`;
+  addAgentMessage(`No worries! The most common issue is selecting "Store Manager" instead of "Business Admin." Follow the steps on screen to fix it.`);
+}
+
+// ── TRACK SWITCHING ──
+function switchTrack(track){
+  if(track==='admin'){
+    // Go back to business or access phase
+    const target = S.completed.has(stepKey(2,4)) ? [2,4] : [1,0];
+    navigate(target[0],target[1]);
+  }
+}
+
+// ── AGENT SYSTEM ──
+let agentQueue = [];
+let agentPlaying = false;
+
+function playAgentScript(key){
+  const msgs = AGENT[key];
+  if(!msgs) return;
+  agentQueue = [...msgs];
+  if(!agentPlaying) playNextAgent();
+}
+
+function playNextAgent(){
+  if(agentQueue.length===0){ agentPlaying=false; return; }
+  agentPlaying = true;
+  const container = document.getElementById('agent-messages');
+  // Show typing
+  const typingId = 'typing-'+Date.now();
+  container.insertAdjacentHTML('beforeend',`<div id="${typingId}" class="agent-msg"><div class="am-name">Loop Assistant</div><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`);
+  container.scrollTop = container.scrollHeight;
+  setTimeout(()=>{
+    const typing = document.getElementById(typingId);
+    if(typing) typing.remove();
+    addAgentMessage(agentQueue.shift());
+    setTimeout(playNextAgent, 600);
+  }, 1200+Math.random()*800);
+}
+
+function addAgentMessage(text){
+  const container = document.getElementById('agent-messages');
+  const now = new Date();
+  const time = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  container.insertAdjacentHTML('beforeend',`
+    <div class="agent-msg fade-up">
+      <div class="am-name">Loop Assistant</div>
+      <div class="am-bubble">${text}</div>
+      <div class="am-time">${time}</div>
+    </div>`);
+  container.scrollTop = container.scrollHeight;
+}
+
+function sendAgentMsg(){
+  const input = document.getElementById('agent-input-field');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value='';
+  const container = document.getElementById('agent-messages');
+  container.insertAdjacentHTML('beforeend',`
+    <div class="agent-msg user fade-up">
+      <div class="am-bubble">${text}</div>
+    </div>`);
+  container.scrollTop = container.scrollHeight;
+  // Auto-reply
+  setTimeout(()=>{
+    addAgentMessage(`I understand your question about "${text.substring(0,30)}..." — Let me help with that. In the current step, you can proceed by following the instructions on screen. If you need more specific help, tap the Support button to schedule a call.`);
+  },1500);
+}
+
+function toggleAgent(){
+  S.agentOpen = !S.agentOpen;
+  document.getElementById('agent-panel').classList.toggle('open', S.agentOpen);
+  document.getElementById('agent-toggle').classList.toggle('active', S.agentOpen);
+  document.getElementById('agent-toggle').textContent = S.agentOpen ? 'Close Chat' : 'AI Chat';
+}
+
+// ── MILESTONES ──
+function showMilestone(title,desc,nextText){
+  const card = document.getElementById('milestone-card');
+  card.innerHTML=`
+    <div class="ms-icon">&#127881;</div>
+    <h2>${title}</h2>
+    <p>${desc}</p>
+    <div class="ms-next">Next: ${nextText}</div>
+    <button class="btn btn-primary btn-lg" onclick="closeMilestone();next()">Continue &rarr;</button>`;
+  document.getElementById('milestone-overlay').classList.add('show');
+  fireConfetti();
+}
+
+function showLiveMilestone(){
+  S.completed.add(curKey());
+  const card = document.getElementById('milestone-card');
+  card.innerHTML=`
+    <div class="ms-icon">&#127881;</div>
+    <h2>You're Live on Loop!</h2>
+    <p>Dashboard access has been granted. ${C.company} is now live across all ${C.locations} locations.</p>
+    <div class="ms-summary">
+      <div class="ms-row"><span>Platforms</span><span>3 connected</span></div>
+      <div class="ms-row"><span>Stores</span><span>${C.locations} verified</span></div>
+      <div class="ms-row"><span>Products</span><span>Protect + TrueROI</span></div>
+      <div class="ms-row"><span>Billing</span><span>Configured</span></div>
+    </div>
+    <div class="ms-next">Your CS manager will reach out within the next few days for a strategic introduction.</div>
+    <button class="btn btn-primary btn-lg" onclick="closeMilestone();next()">Continue to Product Setup &rarr;</button>
+    <div style="margin-top:12px"><button class="btn btn-ghost" onclick="closeMilestone();alert('Dashboard would open here')">Explore Dashboard</button></div>`;
+  document.getElementById('milestone-overlay').classList.add('show');
+  fireConfetti();
+}
+
+function closeMilestone(){
+  document.getElementById('milestone-overlay').classList.remove('show');
+}
+
+// ── JOURNEY MAP ──
+function showJourney(){
+  const steps=[
+    {n:'Contract Signed',d:'',s:'done'},
+    {n:'Account Setup',d:'Automated',s:'done'},
+    {n:'Self-Serve Onboarding',d:'You are here',s:'active'},
+    {n:'Verification',d:'1-2 business days',s:'pending'},
+    {n:'Dashboard Access',d:'',s:'pending'},
+    {n:'CS Manager Introduction',d:'',s:'pending'},
+    {n:'Product Onboarding',d:'Protect, TrueROI',s:'pending'}
+  ];
+  document.getElementById('journey-card').innerHTML=`
+    <h2>Your Journey with Loop</h2>
+    ${steps.map((st,i)=>`
+    <div class="jm-step ${st.s}">
+      <div class="jm-dot">${st.s==='done'?'&#10003;':i+1}</div>
+      <div class="jm-info"><h4>${st.n}</h4>${st.d?`<p>${st.d}</p>`:''}</div>
+    </div>`).join('')}
+    <div style="text-align:center;margin-top:16px"><button class="btn btn-ghost" onclick="closeJourney()">Close</button></div>`;
+  document.getElementById('journey-overlay').classList.add('show');
+}
+function closeJourney(){
+  document.getElementById('journey-overlay').classList.remove('show');
+}
+
+// ── CONFETTI ──
+function fireConfetti(){
+  const canvas=document.getElementById('confetti-canvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  const particles=[];
+  const colors=['#6c5ce7','#00bfa6','#f59e0b','#10b981','#ef4444','#3b82f6','#a78bfa'];
+  for(let i=0;i<120;i++){
+    particles.push({
+      x:canvas.width/2+((Math.random()-.5)*200),y:canvas.height/2,
+      vx:(Math.random()-.5)*12,vy:-(Math.random()*12+4),
+      w:Math.random()*8+4,h:Math.random()*6+2,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      rot:Math.random()*360,rv:(Math.random()-.5)*10,
+      gravity:.25,life:1
+    });
+  }
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive=false;
+    particles.forEach(p=>{
+      if(p.life<=0)return;
+      alive=true;
+      p.x+=p.vx;p.y+=p.vy;p.vy+=p.gravity;p.rot+=p.rv;p.life-=.008;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);
+      ctx.globalAlpha=p.life;ctx.fillStyle=p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();
+    });
+    if(alive) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
+}
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded',()=>{
+  toggleAgent(); // Open agent by default
+  navigate(0,0);
+});
+</script>
+</body>
+</html>
