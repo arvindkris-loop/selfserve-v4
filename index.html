@@ -263,7 +263,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   </div>
   <div class="tb-right">
     <div class="save-ind"><span class="save-dot"></span> Auto-saved</div>
-    <button class="tb-btn support" onclick="alert('Support: schedule a call at support@loop.ai')">Support</button>
+    <button class="tb-btn support" onclick="showSupportModal()">Support</button>
     <button class="tb-btn" id="agent-toggle" onclick="toggleAgent()">AI Chat</button>
   </div>
 </div>
@@ -283,7 +283,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
       <strong>Michael Torres</strong> is setting up billing separately. <span id="cross-status">Not started yet.</span>
     </div>
     <div class="sb-support">
-      <button class="sb-support-btn" onclick="alert('Schedule a support call at support@loop.ai')">Schedule Support Call</button>
+      <button class="sb-support-btn" onclick="showSupportModal()">Schedule Support Call</button>
     </div>
   </aside>
 
@@ -360,7 +360,7 @@ const PHASES = [
     {id:'locations',name:'Locations',time:'3 min'},
     {id:'calendar',name:'Calendar & Periods',time:'1 min'},
     {id:'people',name:'People & Roles',time:'2 min'},
-    {id:'integrations',name:'Integrations',time:'2 min'}
+    {id:'connectors',name:'Connectors',time:'2 min'}
   ]},
   {id:'billing',name:'Billing & Payment',steps:[
     {id:'entity',name:'Billing Entity',time:'1 min'},
@@ -369,9 +369,9 @@ const PHASES = [
     {id:'payment',name:'Payment Method',time:'2 min'}
   ]},
   {id:'golive',name:'Go-Live',steps:[
-    {id:'review',name:'Final Review',time:'2 min'},
-    {id:'timeline',name:'Go-Live Timeline',time:'1 min'},
-    {id:'live',name:'You\'re Live!',time:'1 min'}
+    {id:'review',name:'Final Review',time:''},
+    {id:'timeline',name:'What Happens Next',time:''},
+    {id:'live',name:'You\'re Live!',time:''}
   ]},
   {id:'product',name:'Product Onboarding',steps:[
     {id:'overview',name:'Module Overview',time:'1 min'},
@@ -389,7 +389,7 @@ const S = {
   agentOpen:false, completed:new Set(),
   platformSub:{}, // sub-step state for platform connects
   role:null, cfoProgress:0,
-  errorShown:false
+  errorShown:false, billingStructure:null
 };
 
 function stepKey(p,s){ return `${p}-${s}`; }
@@ -451,8 +451,8 @@ const AGENT = {
     `Here are the contacts from your contract. You can add more team members and set their roles and permissions.`,
     `Each person will get an email invitation to access Loop.`
   ],
-  'business-integrations':[
-    `Connecting your ERP, POS, and communication tools helps Loop provide richer insights.`,
+  'business-connectors':[
+    `Connecting your business tools helps Loop provide richer insights across your operations.`,
     `These aren't required right now — you can always connect them later from your dashboard.`
   ],
   'billing-entity':[
@@ -575,7 +575,7 @@ RENDERERS['welcome-routing'] = ()=>`
           1. Connect Delivery Platforms<br>
           2. Configure Brands & Locations<br>
           3. Set Up Calendar & People<br>
-          4. Connect Integrations
+          4. Connect Business Tools
         </div>
         <div style="margin-top:12px;font-size:11px;color:var(--accent-text);background:var(--accent-soft);padding:6px 12px;border-radius:8px;text-align:center;font-weight:600">~20 min</div>
       </div>
@@ -731,7 +731,8 @@ RENDERERS['business-brands'] = ()=>`
       </div>
     </div>
   </div>`).join('')}
-  <button class="btn btn-ghost" style="margin-bottom:16px" onclick="alert('Add Brand form would appear here')">+ Add Brand</button>
+  <div id="add-brand-area"></div>
+  <button class="btn btn-ghost" style="margin-bottom:16px" onclick="showAddBrand()">+ Add Brand</button>
   <div class="step-actions">
     <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
     <button class="btn btn-primary" onclick="completeAndNext()">Confirm Brands &rarr;</button>
@@ -816,29 +817,32 @@ RENDERERS['business-people'] = ()=>`
       </div>
     </div>
   </div>`).join('')}
-  <button class="btn btn-ghost" style="margin-bottom:16px" onclick="alert('Add Person form would appear here')">+ Add Team Member</button>
+  <div id="add-person-area"></div>
+  <button class="btn btn-ghost" style="margin-bottom:16px" onclick="showAddPerson()">+ Add Team Member</button>
   <div class="step-actions">
     <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
     <button class="btn btn-primary" onclick="completeAndNext()">Confirm Team &rarr;</button>
   </div>
 </div>`;
 
-// ── BUSINESS: INTEGRATIONS ──
-RENDERERS['business-integrations'] = ()=>`
+// ── BUSINESS: CONNECTORS ──
+RENDERERS['business-connectors'] = ()=>`
 <div class="fade-up">
   <div class="step-eyebrow">Business Setup <span class="time-pill">~2 min</span></div>
-  <div class="step-title">Integrations</div>
-  <div class="step-desc">Connect your business tools for richer insights. You can do this later too.</div>
+  <div class="step-title">Connectors</div>
+  <div class="step-desc">Connect your business tools so Loop can provide richer insights across your operations.</div>
   ${[
-    {cat:'Accounting & ERP',items:['R365','QuickBooks','Xero','Sage Intacct'],rec:true},
-    {cat:'Point of Sale',items:['Toast','Square','Aloha','QSRSoft'],rec:true},
-    {cat:'Communication',items:['Slack','Microsoft Teams','Email'],rec:false}
+    {cat:'Accounting & ERP',desc:'Sync your financial data for automated reconciliation and reporting.',items:['R365','QuickBooks','Xero','Sage Intacct'],rec:true},
+    {cat:'Point of Sale',desc:'Pull in real-time sales data for accurate profitability analysis.',items:['Toast','Square','Aloha','QSRSoft','Olo'],rec:true},
+    {cat:'Users & Workforce',desc:'Sync your team roster for automated role assignments and permissions.',items:['Harri','7shifts','Homebase','ADP'],rec:true},
+    {cat:'Communication',desc:'Get alerts and reports delivered where your team already works.',items:['Slack','Microsoft Teams','Email'],rec:false}
   ].map(c=>`
   <div class="card">
     <div class="card-head">${c.cat} ${c.rec?'<span style="font-size:10px;color:var(--orange-text);background:var(--orange-soft);padding:2px 8px;border-radius:8px">Recommended</span>':''}</div>
     <div class="card-body">
+      <div style="font-size:12px;color:var(--text-sec);margin-bottom:10px">${c.desc}</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
-        ${c.items.map(it=>`<button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="this.classList.toggle('active');this.style.background=this.classList.contains('active')?'var(--accent-soft)':'';this.style.borderColor=this.classList.contains('active')?'var(--accent)':''">${it}</button>`).join('')}
+        ${c.items.map(it=>`<button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="toggleConnector(this)">${it}</button>`).join('')}
       </div>
     </div>
   </div>`).join('')}
@@ -846,7 +850,7 @@ RENDERERS['business-integrations'] = ()=>`
   <div class="step-actions">
     <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
     <button class="btn btn-ghost" onclick="completeAndNext()">Skip for Now</button>
-    <button class="btn btn-primary" onclick="completeAndNext()">Continue &rarr;</button>
+    <button class="btn btn-primary" onclick="completeAndNext()">Confirm Connectors &rarr;</button>
   </div>
 </div>`;
 
@@ -875,40 +879,105 @@ RENDERERS['billing-entity'] = ()=>`
   </div>
   <div class="step-actions">
     <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
-    <button class="btn btn-ghost" onclick="alert('Your account manager will follow up within 1 business day.')">Something Needs Updating</button>
+    <button class="btn btn-ghost" onclick="showDisputeNotification('entity')">Something Needs Updating</button>
     <button class="btn btn-teal" onclick="completeAndNext()">Looks Correct &rarr;</button>
   </div>
 </div>`;
 
 // ── BILLING: STRUCTURE ──
-RENDERERS['billing-structure'] = ()=>`
+RENDERERS['billing-structure'] = ()=>{
+  const sel = S.billingStructure;
+  return `
 <div class="fade-up">
-  <div class="step-eyebrow" style="color:var(--teal-text)">Billing & Payment <span class="time-pill">~1 min</span></div>
+  <div class="step-eyebrow" style="color:var(--teal-text)">Billing & Payment <span class="time-pill">~2 min</span></div>
   <div class="step-title">How should we structure your billing?</div>
   <div class="step-desc">This determines how your invoices are organized across ${C.locations} locations.</div>
   <div class="choices" id="structure-choices">
-    <div class="choice" onclick="selectStructure(this,0)">
+    <div class="choice ${sel==='single'?'selected':''}" onclick="selectStructure('single')">
       <div class="choice-icon">&#128203;</div>
       <h3>Single Entity</h3>
-      <p>All locations billed under one entity. One consolidated invoice.</p>
+      <p>All ${C.locations} locations billed under <strong>${C.billing.entity}</strong>. One consolidated invoice per billing cycle.</p>
     </div>
-    <div class="choice" onclick="selectStructure(this,1)">
+    <div class="choice ${sel==='per-location'?'selected':''}" onclick="selectStructure('per-location')">
       <div class="choice-icon">&#128200;</div>
       <h3>Per-Location</h3>
-      <p>Each location gets its own invoice. Setup within 1 business day.</p>
+      <p>Each location receives its own invoice. Ideal for franchise operators who need separate cost tracking.</p>
     </div>
-    <div class="choice" onclick="selectStructure(this,2)">
+    <div class="choice ${sel==='custom'?'selected':''}" onclick="selectStructure('custom')">
       <div class="choice-icon">&#128736;</div>
       <h3>Custom Grouping</h3>
-      <p>Our finance team will reach out for a brief call. Doesn't block your setup.</p>
+      <p>Group locations into billing clusters (e.g., by region, brand, or franchisee). Fully flexible.</p>
     </div>
   </div>
-  <div class="banner info"><span class="banner-icon">&#128161;</span> Most QSR franchisors with 50+ locations choose <strong>Single Entity</strong> for simplicity.</div>
+  <div id="structure-detail">${renderStructureDetail(sel)}</div>
+  <div class="banner info"><span class="banner-icon">&#128161;</span> Most QSR franchisors with 50+ locations choose <strong>Single Entity</strong> for simplicity. You can change this later by contacting your account manager.</div>
   <div class="step-actions">
     <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
-    <button class="btn btn-teal" onclick="completeAndNext()">Continue &rarr;</button>
+    <button class="btn btn-teal" onclick="if(!S.billingStructure){alert('Please select a billing structure');return;}completeAndNext()">Confirm Structure &rarr;</button>
   </div>
-</div>`;
+</div>`};
+
+function renderStructureDetail(sel){
+  if(sel==='single') return `
+    <div class="card fade-up" style="border-color:var(--teal);margin-top:4px">
+      <div class="card-head" style="background:var(--teal-soft);color:var(--teal-text)">Single Entity Summary</div>
+      <div class="card-body" style="font-size:13px;line-height:1.8">
+        <div style="display:flex;justify-content:space-between"><span>Billing entity</span><strong>${C.billing.entity}</strong></div>
+        <div style="display:flex;justify-content:space-between"><span>Locations covered</span><strong>All ${C.locations} locations</strong></div>
+        <div style="display:flex;justify-content:space-between"><span>Invoice frequency</span><strong>Monthly, consolidated</strong></div>
+        <div style="display:flex;justify-content:space-between"><span>Invoice recipient</span><strong>${C.ap.name} (${C.ap.email})</strong></div>
+        <div style="display:flex;justify-content:space-between"><span>Effective</span><strong>Immediately upon payment setup</strong></div>
+      </div>
+    </div>`;
+  if(sel==='per-location') return `
+    <div class="card fade-up" style="border-color:var(--teal);margin-top:4px">
+      <div class="card-head" style="background:var(--teal-soft);color:var(--teal-text)">Per-Location Billing Setup</div>
+      <div class="card-body">
+        <div style="font-size:13px;color:var(--text-sec);margin-bottom:12px">Each location will receive a separate monthly invoice. Here's a preview of how your locations will be mapped:</div>
+        <table class="data-table">
+          <thead><tr><th>Location</th><th>Brand</th><th>Billing Contact</th><th>Invoice</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:500">Starbird #001 Sunnyvale</td><td>Starbird Chicken</td><td>${C.ap.name}</td><td style="color:var(--teal-text);font-weight:600">Separate</td></tr>
+            <tr><td style="font-weight:500">Starbird #002 Palo Alto</td><td>Starbird Chicken</td><td>${C.ap.name}</td><td style="color:var(--teal-text);font-weight:600">Separate</td></tr>
+            <tr><td style="font-weight:500">Wings #001 Oakland</td><td>Starbird Wings</td><td>${C.ap.name}</td><td style="color:var(--teal-text);font-weight:600">Separate</td></tr>
+            <tr><td colspan="4" style="text-align:center;color:var(--text-light);font-size:11px">... and ${C.locations-3} more locations</td></tr>
+          </tbody>
+        </table>
+        <div class="banner warn" style="margin-top:12px"><span class="banner-icon">&#9202;</span> Per-location invoicing will be fully configured within <strong>1 business day</strong> after you complete payment setup. You'll receive a confirmation email.</div>
+        <div class="form-grid" style="margin-top:12px">
+          <div class="fg full"><div class="fl">Default Billing Contact for All Locations</div><select class="fi prefilled"><option>${C.ap.name} (${C.ap.email})</option><option>Assign per location (available after setup)</option></select></div>
+        </div>
+      </div>
+    </div>`;
+  if(sel==='custom') return `
+    <div class="card fade-up" style="border-color:var(--teal);margin-top:4px">
+      <div class="card-head" style="background:var(--teal-soft);color:var(--teal-text)">Custom Grouping Setup</div>
+      <div class="card-body">
+        <div style="font-size:13px;color:var(--text-sec);margin-bottom:14px">Group your ${C.locations} locations into billing clusters. Common groupings include:</div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:140px;background:var(--bg);padding:12px;border-radius:var(--rs);font-size:12px;text-align:center">
+            <div style="font-weight:700;margin-bottom:4px">By Brand</div>
+            <div style="color:var(--text-sec)">Starbird Chicken (38 locations)<br>Starbird Wings (14 locations)</div>
+          </div>
+          <div style="flex:1;min-width:140px;background:var(--bg);padding:12px;border-radius:var(--rs);font-size:12px;text-align:center">
+            <div style="font-weight:700;margin-bottom:4px">By Region</div>
+            <div style="color:var(--text-sec)">Bay Area (28 locations)<br>East Bay (14 locations)<br>South Bay (10 locations)</div>
+          </div>
+          <div style="flex:1;min-width:140px;background:var(--bg);padding:12px;border-radius:var(--rs);font-size:12px;text-align:center">
+            <div style="font-weight:700;margin-bottom:4px">By Franchisee</div>
+            <div style="color:var(--text-sec)">Group locations by ownership entity for separate invoicing</div>
+          </div>
+        </div>
+        <div class="banner info"><span class="banner-icon">&#128222;</span> Our billing team will schedule a brief 15-minute call with <strong>${C.ap.name}</strong> to finalize your grouping. This call will happen within <strong>1 business day</strong> and does not block your remaining setup.</div>
+        <div class="form-grid" style="margin-top:12px">
+          <div class="fg full"><div class="fl">Preferred Grouping</div><select class="fi"><option>Select a grouping preference...</option><option>By Brand</option><option>By Region</option><option>By Franchisee / Ownership Entity</option><option>Other (describe on the call)</option></select></div>
+          <div class="fg full"><div class="fl">Additional Notes (Optional)</div><textarea class="fi" rows="2" placeholder="Any details to help our billing team prepare for the call..." style="resize:vertical;font-family:inherit"></textarea></div>
+        </div>
+      </div>
+    </div>`;
+  return '';
+}
+
 
 // ── BILLING: PRODUCTS ──
 RENDERERS['billing-products'] = ()=>`
@@ -918,26 +987,32 @@ RENDERERS['billing-products'] = ()=>`
   <div class="step-desc">Please confirm the products and pricing from your signed contract.</div>
   <div class="banner success"><span class="banner-icon">&#128196;</span> Pre-filled from your signed contract</div>
   <div class="card prefilled">
-    <div class="card-head">Contract Summary</div>
+    <div class="card-head">Your Loop Products</div>
     <div class="card-body" style="padding:0">
       <table class="data-table">
-        <thead><tr><th>Product</th><th>Price</th><th>Locations</th><th>Monthly</th></tr></thead>
+        <thead><tr><th>Product</th><th>Per Location</th><th>Locations</th><th>Monthly Total</th></tr></thead>
         <tbody>
-          <tr><td><span style="background:var(--accent-soft);color:var(--accent-text);padding:2px 10px;border-radius:8px;font-size:11px;font-weight:600">Protect</span></td><td>$150/loc/mo</td><td>${C.locations}</td><td style="font-weight:600">$7,800</td></tr>
-          <tr><td><span style="background:var(--teal-soft);color:var(--teal-text);padding:2px 10px;border-radius:8px;font-size:11px;font-weight:600">TrueROI</span></td><td>$200/loc/mo</td><td>${C.locations}</td><td style="font-weight:600">$10,400</td></tr>
+          <tr><td><span style="background:var(--accent-soft);color:var(--accent-text);padding:2px 10px;border-radius:8px;font-size:11px;font-weight:600">Protect</span></td><td>$150 / month</td><td>${C.locations}</td><td style="font-weight:600">$7,800</td></tr>
+          <tr><td><span style="background:var(--teal-soft);color:var(--teal-text);padding:2px 10px;border-radius:8px;font-size:11px;font-weight:600">TrueROI</span></td><td>$200 / month</td><td>${C.locations}</td><td style="font-weight:600">$10,400</td></tr>
         </tbody>
       </table>
     </div>
     <div class="card-foot">
-      <div style="font-size:12px;color:var(--text-sec)">
-        <div>MRR: <strong>${C.contract.mrr}</strong> &nbsp;|&nbsp; ACV: <strong>${C.contract.acv}</strong></div>
-        <div style="margin-top:2px">Term: <strong>${C.contract.term}</strong></div>
+      <div style="font-size:13px;color:var(--text-sec)">
+        <div>Monthly total: <strong>${C.contract.mrr}</strong> &nbsp;|&nbsp; Contract term: <strong>${C.contract.term}</strong></div>
       </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:4px">
+    <div class="card-head">What's Included</div>
+    <div class="card-body" style="font-size:13px;line-height:2">
+      <div><strong>Protect</strong> &mdash; Missing order detection, commission monitoring, error recovery automation, downtime alerts</div>
+      <div><strong>TrueROI</strong> &mdash; True cost analysis, profitability reports by location, platform comparison, comp store performance</div>
     </div>
   </div>
   <div class="step-actions">
     <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
-    <button class="btn btn-ghost" onclick="alert('Your account manager will follow up within 1 business day.')">This Doesn't Look Right</button>
+    <button class="btn btn-ghost" onclick="showDisputeNotification('products')">This Doesn't Look Right</button>
     <button class="btn btn-teal" onclick="completeAndNext()">Confirmed &rarr;</button>
   </div>
 </div>`;
@@ -978,7 +1053,7 @@ RENDERERS['billing-payment'] = ()=>`
 // ── GOLIVE: REVIEW ──
 RENDERERS['golive-review'] = ()=>`
 <div class="fade-up">
-  <div class="step-eyebrow">Go-Live <span class="time-pill">~2 min</span></div>
+  <div class="step-eyebrow">Go-Live</div>
   <div class="step-title">Final Review</div>
   <div class="step-desc">Summary of everything configured across both tracks.</div>
   <div class="card">
@@ -989,6 +1064,7 @@ RENDERERS['golive-review'] = ()=>`
       <div style="display:flex;justify-content:space-between"><span>Locations</span><strong>${C.locations} mapped &#10003;</strong></div>
       <div style="display:flex;justify-content:space-between"><span>Calendar</span><strong>Calendar Month (Jan) &#10003;</strong></div>
       <div style="display:flex;justify-content:space-between"><span>Team Members</span><strong>3 configured &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Connectors</span><strong>Available to set up from dashboard &#10003;</strong></div>
     </div>
   </div>
   <div class="card">
@@ -1009,17 +1085,17 @@ RENDERERS['golive-review'] = ()=>`
 // ── GOLIVE: TIMELINE ──
 RENDERERS['golive-timeline'] = ()=>`
 <div class="fade-up">
-  <div class="step-eyebrow">Go-Live <span class="time-pill">~1 min</span></div>
+  <div class="step-eyebrow">Go-Live</div>
   <div class="step-title">What Happens Next</div>
-  <div class="step-desc">You don't need to do anything during verification. We'll keep you updated.</div>
+  <div class="step-desc">You don't need to do anything during verification. We'll keep you updated at every step.</div>
   <div class="card">
     <div class="card-body" style="padding:20px">
       ${[
-        {day:'Today',title:'Both tracks submitted',desc:'Your configuration is being reviewed.',status:'done'},
-        {day:'Day 1-2',title:'Operations QC',desc:'Automated checks + manual review by our team.',status:'active'},
-        {day:'Day 2-3',title:'Dashboard access granted',desc:'You\'ll receive an email with your login.',status:'pending'},
-        {day:'Day 3-5',title:'CS manager introduction',desc:'A brief strategic call (15 min, not a product walkthrough).',status:'pending'},
-        {day:'Day 5+',title:'Product onboarding begins',desc:'Guided setup for Protect, then TrueROI.',status:'pending'}
+        {day:'Today',title:'Both tracks submitted',desc:'Your configuration is being reviewed by our operations team.',status:'done'},
+        {day:'Day 1-2',title:'Verification & quality check',desc:'Automated checks and manual review to ensure everything is configured correctly.',status:'active'},
+        {day:'Day 2-3',title:'Dashboard access granted',desc:'You\'ll receive an email with your login credentials and a link to your dashboard.',status:'pending'},
+        {day:'Day 3-5',title:'Your customer success manager introduction',desc:'A brief strategic call (15 min) to discuss your goals and how Loop can help.',status:'pending'},
+        {day:'Day 5+',title:'Product onboarding begins',desc:'Guided setup for Protect, then TrueROI. Your CS manager will be available throughout.',status:'pending'}
       ].map((t,i)=>`
       <div style="display:flex;gap:14px;${i<4?'padding-bottom:20px;':''};position:relative">
         ${i<4?`<div style="position:absolute;left:15px;top:36px;width:2px;height:calc(100% - 16px);background:${t.status==='done'?'var(--green)':'var(--border)'}"></div>`:''}
@@ -1033,8 +1109,10 @@ RENDERERS['golive-timeline'] = ()=>`
     </div>
   </div>
   <div class="banner info"><span class="banner-icon">&#128232;</span> You'll receive email updates at each stage. You can also check back here anytime.</div>
+  <div class="banner success"><span class="banner-icon">&#128222;</span> Need help while you wait? You can schedule a support call anytime using the <strong>Schedule Support Call</strong> button at the bottom of the sidebar.</div>
   <div class="step-actions">
-    <button class="btn btn-primary" onclick="showLiveMilestone()">Continue &rarr;</button>
+    <button class="btn btn-ghost" onclick="showDashboardPreview()">Explore Dashboard Preview</button>
+    <button class="btn btn-primary" onclick="showLiveMilestone()">Done &mdash; I'll Wait for Verification</button>
   </div>
 </div>`;
 
@@ -1043,10 +1121,19 @@ RENDERERS['golive-live'] = ()=>`
 <div class="fade-up" style="text-align:center;padding:40px 0">
   <div style="font-size:64px;margin-bottom:16px">&#127881;</div>
   <div class="step-title" style="font-size:28px;text-align:center">You're Live on Loop!</div>
-  <div class="step-desc" style="text-align:center;margin:0 auto 32px">Your dashboard is ready. Your CS manager will reach out soon.</div>
+  <div class="step-desc" style="text-align:center;margin:0 auto 24px">Verification is complete. Your dashboard is ready and your data is flowing.</div>
+  <div class="card" style="text-align:left;max-width:460px;margin:0 auto 20px">
+    <div class="card-body" style="font-size:13px;line-height:2">
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> <strong>${C.locations} stores</strong> across 3 platforms connected and verified</div>
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> <strong>${C.brands.length} brands</strong> and locations mapped</div>
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> Billing configured for <strong>${C.billing.entity}</strong></div>
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> Dashboard access granted</div>
+    </div>
+  </div>
+  <div class="banner info" style="max-width:460px;margin:0 auto 20px;text-align:left"><span class="banner-icon">&#128100;</span> Your customer success manager will reach out within the next few days to schedule a brief strategic introduction.</div>
   <div style="display:flex;gap:12px;justify-content:center;margin-bottom:24px">
     <button class="btn btn-primary btn-lg" onclick="completeAndNext()">Set Up Products &rarr;</button>
-    <button class="btn btn-ghost btn-lg" onclick="alert('Dashboard would open here')">Explore Dashboard</button>
+    <button class="btn btn-ghost btn-lg" onclick="showDashboardPreview()">Explore Dashboard</button>
   </div>
 </div>`;
 
@@ -1157,20 +1244,28 @@ RENDERERS['product-complete'] = ()=>`
 <div class="fade-up" style="text-align:center;padding:40px 0">
   <div style="font-size:64px;margin-bottom:16px">&#127942;</div>
   <div class="step-title" style="font-size:28px;text-align:center">Onboarding Complete!</div>
-  <div class="step-desc" style="text-align:center;margin:0 auto 24px">You're all set. Here's what happens next.</div>
-  <div class="card" style="text-align:left;max-width:460px;margin:0 auto 24px">
+  <div class="step-desc" style="text-align:center;margin:0 auto 24px">${C.company} is fully set up on Loop. Here's a summary of everything that's now active.</div>
+  <div class="card" style="text-align:left;max-width:480px;margin:0 auto 16px">
+    <div class="card-head">Active Products</div>
     <div class="card-body" style="font-size:13px;line-height:2.2">
-      <div style="display:flex;gap:10px"><span style="color:var(--green)">&#10003;</span> <strong>Protect</strong> is live — monitoring all ${C.locations} stores</div>
-      <div style="display:flex;gap:10px"><span style="color:var(--green)">&#10003;</span> <strong>TrueROI</strong> reports generating within 24-48 hours</div>
-      <div style="display:flex;gap:10px"><span style="color:var(--accent)">&#128197;</span> <strong>CS Manager</strong> will schedule intro call this week</div>
-      <div style="display:flex;gap:10px"><span style="color:var(--accent)">&#128200;</span> <strong>First insights</strong> available in your dashboard now</div>
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> <strong>Protect</strong> &mdash; Monitoring all ${C.locations} stores across 3 platforms</div>
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> <strong>TrueROI</strong> &mdash; First reports generating within 24-48 hours</div>
     </div>
   </div>
-  <div style="display:flex;gap:12px;justify-content:center">
-    <button class="btn btn-primary btn-lg" onclick="alert('Dashboard would open here')">Go to Dashboard &rarr;</button>
+  <div class="card" style="text-align:left;max-width:480px;margin:0 auto 16px">
+    <div class="card-head">What's Coming</div>
+    <div class="card-body" style="font-size:13px;line-height:2.2">
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--accent)">&#128197;</span> <strong>Customer success manager</strong> will schedule a strategic introduction call this week</div>
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--accent)">&#128200;</span> <strong>First insights and reports</strong> will appear in your dashboard as data syncs</div>
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--accent)">&#128232;</span> <strong>Weekly performance summaries</strong> will be emailed to your configured team members</div>
+    </div>
   </div>
-  <div style="margin-top:32px;font-size:12px;color:var(--text-light)">
-    Questions? Your CS manager or our AI assistant are always available to help.
+  <div class="banner success" style="max-width:480px;margin:0 auto 20px;text-align:left"><span class="banner-icon">&#128161;</span> You can return to this portal anytime via the <strong>Finish Setup</strong> button in your dashboard to adjust configurations, add connectors, or update team members.</div>
+  <div style="display:flex;gap:12px;justify-content:center">
+    <button class="btn btn-primary btn-lg" onclick="showDashboardPreview()">Go to Dashboard &rarr;</button>
+  </div>
+  <div style="margin-top:24px;font-size:12px;color:var(--text-light)">
+    Need help? Use the <strong>Support</strong> button above or chat with the AI assistant anytime.
   </div>
 </div>`;
 
@@ -1182,7 +1277,7 @@ function navigate(phase, step){
   S.phase = phase; S.step = step;
   const ph = PHASES[phase], st = ph.steps[step];
   // Update topbar
-  document.getElementById('tb-step').innerHTML = `<strong>${st.name}</strong> <span class="time-pill">~${st.time}</span>`;
+  document.getElementById('tb-step').innerHTML = `<strong>${st.name}</strong> ${st.time ? '<span class="time-pill">~'+st.time+'</span>' : ''}`;
   // Render main content
   document.getElementById('main-inner').innerHTML = R(phase, step);
   document.getElementById('main-scroll').scrollTop = 0;
@@ -1272,8 +1367,8 @@ function completeAndNext(){
     showMilestone('Platform Access Complete!','All 3 delivery platforms connected with 52 stores verified.','Next: Business Setup (~10 min)');
     return;
   }
-  if(k==='business-integrations'){
-    showMilestone('Business Setup Complete!','Brands, locations, calendar, people, and integrations configured.','Next: Review billing setup or continue to Go-Live');
+  if(k==='business-connectors'){
+    showMilestone('Business Setup Complete!','Brands, locations, calendar, people, and connectors configured.','Next: Review billing setup or continue to Go-Live');
     return;
   }
   if(k==='billing-payment'){
@@ -1295,9 +1390,138 @@ function selectRole(role){
 }
 
 // ── STRUCTURE SELECTION ──
-function selectStructure(el,idx){
+function selectStructure(type){
+  S.billingStructure = type;
   document.querySelectorAll('#structure-choices .choice').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
+  event.currentTarget.classList.add('selected');
+  document.getElementById('structure-detail').innerHTML = renderStructureDetail(type);
+}
+
+// ── ADD BRAND INLINE FORM ──
+function showAddBrand(){
+  const area = document.getElementById('add-brand-area');
+  if(area.innerHTML) return; // already showing
+  area.innerHTML=`
+  <div class="card fade-up" style="border-color:var(--accent)">
+    <div class="card-head" style="background:var(--accent-soft);color:var(--accent-text)">New Brand</div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="fg"><div class="fl">Brand Name</div><input class="fi" placeholder="Enter brand name"></div>
+        <div class="fg"><div class="fl">Type</div><select class="fi"><option>Real</option><option>Virtual</option></select></div>
+        <div class="fg"><div class="fl">Ownership</div><select class="fi"><option>Franchisor</option><option>Franchisee</option><option>Fully Owned</option><option>CPA</option></select></div>
+        <div class="fg"><div class="fl">Number of Locations</div><input class="fi" type="number" placeholder="0"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="document.getElementById('add-brand-area').innerHTML=''">Cancel</button>
+        <button class="btn btn-primary" onclick="document.getElementById('add-brand-area').innerHTML='<div class=\\'banner success fade-up\\'><span class=\\'banner-icon\\'>&#10003;</span> Brand added successfully. It will appear in location mapping.</div>'">Add Brand</button>
+      </div>
+    </div>
+  </div>`;
+  addAgentMessage('Adding a new brand? Fill in the details and it will be included in your location mapping on the next step.');
+}
+
+// ── ADD PERSON INLINE FORM ──
+function showAddPerson(){
+  const area = document.getElementById('add-person-area');
+  if(area.innerHTML) return;
+  area.innerHTML=`
+  <div class="card fade-up" style="border-color:var(--accent)">
+    <div class="card-head" style="background:var(--accent-soft);color:var(--accent-text)">New Team Member</div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="fg"><div class="fl">Full Name</div><input class="fi" placeholder="Enter name"></div>
+        <div class="fg"><div class="fl">Email Address</div><input class="fi" type="email" placeholder="name@company.com"></div>
+        <div class="fg"><div class="fl">Role</div><select class="fi"><option>Select role...</option><option>Owner</option><option>Operations</option><option>Marketing</option><option>Finance</option><option>GM</option><option>Franchise Admin</option></select></div>
+        <div class="fg"><div class="fl">Brand Access</div><select class="fi"><option>All Brands</option>${C.brands.map(b=>'<option>'+b.name+'</option>').join('')}</select></div>
+        <div class="fg"><div class="fl">Permission Level</div><select class="fi"><option>Full Access</option><option>Reports + Billing</option><option>Reports Only</option><option>View Only</option></select></div>
+        <div class="fg"><div class="fl">Notifications</div><select class="fi"><option>All reports</option><option>Weekly summary only</option><option>Critical alerts only</option><option>None</option></select></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="document.getElementById('add-person-area').innerHTML=''">Cancel</button>
+        <button class="btn btn-primary" onclick="document.getElementById('add-person-area').innerHTML='<div class=\\'banner success fade-up\\'><span class=\\'banner-icon\\'>&#10003;</span> Team member added. They will receive an email invitation to access Loop.</div>'">Send Invitation</button>
+      </div>
+    </div>
+  </div>`;
+  addAgentMessage('Each team member will receive an email invitation to access Loop with the permissions you set here.');
+}
+
+// ── CONNECTOR TOGGLE ──
+function toggleConnector(el){
+  el.classList.toggle('active');
+  el.style.background = el.classList.contains('active') ? 'var(--accent-soft)' : '';
+  el.style.borderColor = el.classList.contains('active') ? 'var(--accent)' : '';
+}
+
+// ── DASHBOARD PREVIEW ──
+function showDashboardPreview(){
+  const card = document.getElementById('milestone-card');
+  card.innerHTML=`
+    <div style="font-size:40px;margin-bottom:12px">&#128202;</div>
+    <h2 style="font-size:20px">Dashboard Preview</h2>
+    <div style="text-align:left;background:var(--bg);border-radius:var(--rs);padding:20px;margin:16px 0">
+      <div style="font-size:12px;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;font-weight:600">Today's Snapshot &mdash; ${C.company}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:var(--white);padding:12px;border-radius:var(--rs);border:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text-light)">Stores Monitored</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent)">${C.locations}</div>
+        </div>
+        <div style="background:var(--white);padding:12px;border-radius:var(--rs);border:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text-light)">Platforms Active</div>
+          <div style="font-size:22px;font-weight:800;color:var(--green)">3</div>
+        </div>
+        <div style="background:var(--white);padding:12px;border-radius:var(--rs);border:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text-light)">Errors Detected</div>
+          <div style="font-size:22px;font-weight:800;color:var(--orange)">--</div>
+          <div style="font-size:10px;color:var(--text-light)">Data loading...</div>
+        </div>
+        <div style="background:var(--white);padding:12px;border-radius:var(--rs);border:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text-light)">Recovery Amount</div>
+          <div style="font-size:22px;font-weight:800;color:var(--teal)">--</div>
+          <div style="font-size:10px;color:var(--text-light)">First report ~24h</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-light);margin-top:12px;text-align:center">Live data will populate within 24-48 hours as platforms sync.</div>
+    </div>
+    <button class="btn btn-primary" onclick="closeMilestone()">Back to Setup</button>`;
+  document.getElementById('milestone-overlay').classList.add('show');
+}
+
+// ── SUPPORT MODAL ──
+function showSupportModal(){
+  const card = document.getElementById('milestone-card');
+  card.innerHTML=`
+    <div style="font-size:40px;margin-bottom:12px">&#128222;</div>
+    <h2 style="font-size:20px">Schedule a Support Call</h2>
+    <div style="text-align:left;background:var(--bg);border-radius:var(--rs);padding:16px;margin:16px 0;font-size:13px;line-height:1.8;color:var(--text-sec)">
+      Our support team is available Monday&ndash;Friday, 9am&ndash;6pm PT.<br><br>
+      <strong>Email:</strong> support@loop.ai<br>
+      <strong>Response time:</strong> Within 4 business hours<br><br>
+      Alternatively, your customer success manager will be assigned after verification and can assist with any setup questions.
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-ghost" onclick="closeMilestone()">Close</button>
+      <button class="btn btn-primary" onclick="closeMilestone()">Email Support</button>
+    </div>`;
+  document.getElementById('milestone-overlay').classList.add('show');
+}
+
+// ── DISPUTE / ESCALATION NOTIFICATION ──
+function showDisputeNotification(type){
+  const amName = 'Jordan Mitchell';
+  const messages = {
+    'entity': `We have notified your account manager <strong>${amName}</strong> that the billing entity information needs to be updated.<br><br><strong>${amName}</strong> will follow up with <strong>${C.ap.name}</strong> within 1 business day to resolve this.<br><br>This does not block your remaining setup. You can continue with the next steps.`,
+    'products': `We have notified your account manager <strong>${amName}</strong> that the products and pricing need to be reviewed.<br><br><strong>${amName}</strong> will follow up with you within 1 business day to confirm the correct details.<br><br>You can continue with payment setup in the meantime.`
+  };
+  const card = document.getElementById('milestone-card');
+  card.innerHTML=`
+    <div style="font-size:40px;margin-bottom:12px">&#128232;</div>
+    <h2 style="font-size:20px">Your Account Manager Has Been Notified</h2>
+    <div style="text-align:left;background:var(--bg);border-radius:var(--rs);padding:16px;margin:16px 0;font-size:13px;line-height:1.8;color:var(--text-sec)">${messages[type]||messages['entity']}</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-primary" onclick="closeMilestone()">Got It, Continue Setup</button>
+    </div>`;
+  document.getElementById('milestone-overlay').classList.add('show');
+  addAgentMessage(\`I've flagged this for your account manager \${amName}. They'll follow up within 1 business day. In the meantime, you can continue with the rest of your setup — this won't block anything.\`);
 }
 
 // ── PAYMENT ──
@@ -1401,7 +1625,7 @@ function showError(platform){
     </div>
   </div>
   <div class="step-actions">
-    <button class="btn btn-ghost" onclick="alert('Support: schedule a call at support@loop.ai')">Schedule Support Call</button>
+    <button class="btn btn-ghost" onclick="showSupportModal()">Schedule Support Call</button>
     <button class="btn btn-primary" onclick="S.errorShown=false;platformNext('${platform}')">I've Fixed It &rarr;</button>
   </div>
 </div>`;
@@ -1509,7 +1733,7 @@ function showLiveMilestone(){
     </div>
     <div class="ms-next">Your CS manager will reach out within the next few days for a strategic introduction.</div>
     <button class="btn btn-primary btn-lg" onclick="closeMilestone();next()">Continue to Product Setup &rarr;</button>
-    <div style="margin-top:12px"><button class="btn btn-ghost" onclick="closeMilestone();alert('Dashboard would open here')">Explore Dashboard</button></div>`;
+    <div style="margin-top:12px"><button class="btn btn-ghost" onclick="closeMilestone();showDashboardPreview()">Explore Dashboard</button></div>`;
   document.getElementById('milestone-overlay').classList.add('show');
   fireConfetti();
 }
