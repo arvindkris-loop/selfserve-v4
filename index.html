@@ -1521,7 +1521,7 @@ function showDisputeNotification(type){
       <button class="btn btn-primary" onclick="closeMilestone()">Got It, Continue Setup</button>
     </div>`;
   document.getElementById('milestone-overlay').classList.add('show');
-  addAgentMessage(\`I've flagged this for your account manager \${amName}. They'll follow up within 1 business day. In the meantime, you can continue with the rest of your setup — this won't block anything.\`);
+  addAgentMessage("I've flagged this for your account manager " + amName + ". They'll follow up within 1 business day. In the meantime, you can continue with the rest of your setup — this won't block anything.");
 }
 
 // ── PAYMENT ──
