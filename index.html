@@ -411,7 +411,8 @@ const S = {
   role:null, cfoProgress:0,
   errorShown:false, billingStructure:null,
   billableSelected:new Set(LOCATIONS.filter(l=>l.billable).map(l=>l.id)), // pre-select contracted locations
-  billingEntities:[{name:C.billing.entity,address:C.billing.address,segment:C.billing.segment,apName:C.ap.name,apEmail:C.ap.email}] // primary entity from contract
+  billingEntities:[{name:C.billing.entity,address:C.billing.address,segment:C.billing.segment,apName:C.ap.name,apEmail:C.ap.email}], // primary entity from contract
+  paymentMethods:{} // keyed by entity index: {0: {type:'card',last4:'4242',brand:'Visa'}, ...}
 };
 
 function stepKey(p,s){ return `${p}-${s}`; }
@@ -493,8 +494,9 @@ const AGENT = {
     `If anything looks off, flag it and your account manager will follow up within 1 business day.`
   ],
   'billing-payment':[
-    `Last step for billing! Choose how you'd like to pay.`,
-    `Credit card or ACH processes instantly. Wire transfer takes about 1 business day to set up.`
+    `Last step for billing! Each billing entity needs a payment method — credit card or ACH.`,
+    `You can add one method per entity, or use the bulk option to apply the same card across multiple entities.`,
+    `The continue button will unlock once all entities have a payment method.`
   ],
   'golive-review':[
     `Great work! Both tracks are complete. Here's a summary of everything configured.`,
@@ -1107,37 +1109,66 @@ RENDERERS['billing-products'] = ()=>{
 </div>`};
 
 // ── BILLING: PAYMENT ──
-RENDERERS['billing-payment'] = ()=>`
+RENDERERS['billing-payment'] = ()=>{
+  const entities = S.billingEntities;
+  const allHavePayment = entities.every((_,i)=>S.paymentMethods[i]);
+  const paidCount = Object.keys(S.paymentMethods).length;
+  return `
 <div class="fade-up">
   <div class="step-eyebrow" style="color:var(--teal-text)">Billing & Payment <span class="time-pill">~2 min</span></div>
-  <div class="step-title">Payment Method</div>
-  <div class="step-desc">Choose how you'd like to pay for Loop services.</div>
-  <div class="choices">
-    <div class="choice" onclick="selectPayment(this,0)" style="flex:1">
-      <div class="choice-icon">&#128179;</div>
-      <h3>Credit Card / ACH</h3>
-      <p>Instant setup via secure payment portal. Processed immediately.</p>
-      <div style="margin-top:8px;font-size:10px;color:var(--green-text);font-weight:600">RECOMMENDED</div>
+  <div class="step-title">Payment Methods</div>
+  <div class="step-desc">Each billing entity requires a payment method. Add a credit card or ACH for ${entities.length === 1 ? 'your entity' : 'each entity'}.</div>
+
+  ${entities.length > 1 ? `
+  <div class="card" style="border-color:var(--teal);margin-bottom:4px">
+    <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px">
+      <div style="font-size:13px"><strong>${paidCount}</strong> of <strong>${entities.length}</strong> entities have a payment method</div>
+      <div style="font-size:12px;font-weight:600;color:${allHavePayment?'var(--green-text)':'var(--orange)'}">${allHavePayment?'All set':'Payment required'}</div>
     </div>
-    <div class="choice" onclick="selectPayment(this,1)" style="flex:1">
-      <div class="choice-icon">&#127974;</div>
-      <h3>Wire Transfer</h3>
-      <p>Wire instructions sent to ${C.ap.name} within 1 business day.</p>
-      <div style="margin-top:8px;font-size:10px;color:var(--text-light)">~1 business day</div>
-    </div>
+    <div style="height:4px;background:var(--bg)"><div style="height:100%;background:${allHavePayment?'var(--green)':'var(--orange)'};width:${entities.length?Math.round(paidCount/entities.length*100):0}%;transition:width .3s"></div></div>
   </div>
-  <div id="payment-verify" style="display:none">
-    <div class="verify-list" id="payment-verify-list">
-      <div class="verify-item" id="pvi-0"><div class="vi-icon">&#9675;</div> Processing payment method...</div>
-      <div class="verify-item" id="pvi-1"><div class="vi-icon">&#9675;</div> Validating account...</div>
-      <div class="verify-item" id="pvi-2"><div class="vi-icon">&#9675;</div> Activating invoicing...</div>
+  <div style="margin-bottom:16px">
+    <button class="btn btn-ghost" style="width:100%;border-style:dashed;padding:10px" onclick="showBulkPaymentModal()">
+      <span style="font-size:14px">&#128179;</span> &nbsp;Add one payment method for ${entities.length === paidCount ? 'all' : 'remaining'} entities
+    </button>
+  </div>` : ''}
+
+  ${entities.map((ent,idx)=>{
+    const pm = S.paymentMethods[idx];
+    return `
+  <div class="card ${pm?'':''}fade-up" style="margin-bottom:8px;${pm?'border-color:var(--green)':''}">
+    <div class="card-head" style="${pm?'background:var(--green-soft);color:var(--green-text)':''}">
+      <span style="font-size:12px">${ent.name || 'Entity '+(idx+1)}</span>
+      ${pm?`<span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--green-text)">&#10003; Payment Added</span>`:`<span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--orange)">Payment Required</span>`}
     </div>
-  </div>
+    <div class="card-body" style="padding:12px">
+      ${pm ? `
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:48px;height:32px;background:var(--bg);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:1px solid var(--border)">${pm.brand}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">${pm.type === 'card' ? 'Credit Card' : 'ACH Bank Account'} ending in ${pm.last4}</div>
+            <div style="font-size:11px;color:var(--text-light)">${pm.type === 'card' ? 'Auto-charged monthly' : 'ACH debit monthly'}</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="editPaymentMethod(${idx})">Edit</button>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;color:var(--red-text)" onclick="deletePaymentMethod(${idx})">Delete</button>
+          </div>
+        </div>
+      ` : `
+        <div style="text-align:center;padding:8px 0">
+          <div style="font-size:12px;color:var(--text-sec);margin-bottom:10px">No payment method added yet</div>
+          <button class="btn btn-teal" style="padding:8px 20px;font-size:12px" onclick="showPaymentForm(${idx})">Add Credit Card / ACH</button>
+        </div>
+      `}
+    </div>
+  </div>`}).join('')}
+
+  <div class="banner info"><span class="banner-icon">&#128274;</span> All payment data is processed securely. Card details are never stored on our servers.</div>
   <div class="step-actions" id="payment-actions">
     <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
-    <button class="btn btn-teal" onclick="runPaymentVerify()">Set Up Payment &rarr;</button>
+    <button class="btn btn-teal" onclick="validateAndContinuePayment()"${allHavePayment?'':' disabled style="opacity:.5;cursor:not-allowed"'}>Continue &rarr;</button>
   </div>
-</div>`;
+</div>`};
 
 // ── GOLIVE: REVIEW ──
 RENDERERS['golive-review'] = ()=>`
@@ -1163,7 +1194,7 @@ RENDERERS['golive-review'] = ()=>`
       <div style="display:flex;justify-content:space-between"><span>Billing ${S.billingEntities.length>1?'Entities':'Entity'}</span><strong style="color:var(--green-text)">${S.billingEntities.map(e=>e.name).join(', ')} &#10003;</strong></div>
       <div style="display:flex;justify-content:space-between"><span>Structure</span><strong>${S.billingStructure==='single'?'Single Entity':S.billingStructure==='per-location'?'Per-Location':'Custom Grouping'} (${S.billableSelected.size} billable locs) &#10003;</strong></div>
       <div style="display:flex;justify-content:space-between"><span>Products</span><strong>Protect + TrueROI &#10003;</strong></div>
-      <div style="display:flex;justify-content:space-between"><span>Payment</span><strong style="color:var(--green-text)">Credit Card &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Payment</span><strong style="color:var(--green-text)">${Object.keys(S.paymentMethods).length} ${Object.keys(S.paymentMethods).length===1?'method':'methods'} configured &#10003;</strong></div>
     </div>
   </div>
   <div class="step-actions">
@@ -1462,7 +1493,7 @@ function completeAndNext(){
     return;
   }
   if(k==='billing-payment'){
-    showMilestone('Billing Setup Complete!','Entity verified, structure selected, payment method configured.','Next: Final Review and Go-Live');
+    showMilestone('Billing Setup Complete!','Entity verified, structure selected, payment methods configured for all entities.','Next: Final Review and Go-Live');
     return;
   }
   next();
@@ -1714,19 +1745,214 @@ function showDisputeNotification(type){
 }
 
 // ── PAYMENT ──
-function selectPayment(el,idx){
-  document.querySelectorAll('.choice').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
+function showPaymentForm(entityIdx){
+  const ent = S.billingEntities[entityIdx];
+  const card = document.getElementById('milestone-card');
+  card.innerHTML=`
+    <div style="font-size:32px;margin-bottom:8px">&#128179;</div>
+    <h2 style="font-size:18px">Add Payment Method</h2>
+    <div style="font-size:12px;color:var(--text-sec);margin-bottom:16px">for <strong>${ent.name || 'Entity '+(entityIdx+1)}</strong></div>
+    <div style="text-align:left;max-width:380px;margin:0 auto">
+      <div class="form-grid">
+        <div class="fg full">
+          <div class="fl">Payment Type</div>
+          <select class="fi" id="pm-type" onchange="togglePaymentFields()">
+            <option value="card">Credit Card</option>
+            <option value="ach">ACH Bank Account</option>
+          </select>
+        </div>
+        <div id="pm-card-fields">
+          <div class="form-grid">
+            <div class="fg full"><div class="fl">Card Number</div><input class="fi" id="pm-card-num" placeholder="4242 4242 4242 4242" maxlength="19"></div>
+            <div class="fg"><div class="fl">Expiry</div><input class="fi" id="pm-card-exp" placeholder="MM / YY"></div>
+            <div class="fg"><div class="fl">CVC</div><input class="fi" id="pm-card-cvc" placeholder="123" maxlength="4"></div>
+            <div class="fg full"><div class="fl">Name on Card</div><input class="fi" id="pm-card-name" value="${ent.apName}" placeholder="Cardholder name"></div>
+          </div>
+        </div>
+        <div id="pm-ach-fields" style="display:none">
+          <div class="form-grid">
+            <div class="fg full"><div class="fl">Bank Name</div><input class="fi" id="pm-bank-name" placeholder="e.g., Chase, Bank of America"></div>
+            <div class="fg"><div class="fl">Routing Number</div><input class="fi" id="pm-routing" placeholder="9 digits"></div>
+            <div class="fg"><div class="fl">Account Number</div><input class="fi" id="pm-account" placeholder="Account number"></div>
+            <div class="fg full"><div class="fl">Account Holder</div><input class="fi" id="pm-holder" value="${ent.name}" placeholder="Business or individual name"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeMilestone()">Cancel</button>
+      <button class="btn btn-teal" onclick="processPayment(${entityIdx})">Verify & Add Payment</button>
+    </div>`;
+  document.getElementById('milestone-overlay').classList.add('show');
 }
-function runPaymentVerify(){
-  document.getElementById('payment-verify').style.display='block';
-  document.getElementById('payment-actions').style.display='none';
-  runVerifySequence(['pvi-0','pvi-1','pvi-2'],()=>{
-    document.getElementById('payment-verify').insertAdjacentHTML('afterend',`
-      <div class="banner success fade-up" style="margin-top:16px"><span class="banner-icon">&#10003;</span> Payment method configured successfully! Invoicing is now active.</div>
-      <div class="step-actions fade-up"><button class="btn btn-teal" onclick="completeAndNext()">Continue &rarr;</button></div>
-    `);
+
+function togglePaymentFields(){
+  const type = document.getElementById('pm-type').value;
+  document.getElementById('pm-card-fields').style.display = type==='card' ? '' : 'none';
+  document.getElementById('pm-ach-fields').style.display = type==='ach' ? '' : 'none';
+}
+
+function processPayment(entityIdx){
+  const type = document.getElementById('pm-type').value;
+  const card = document.getElementById('milestone-card');
+  // Simulate verification
+  card.innerHTML=`
+    <div style="font-size:32px;margin-bottom:12px">&#128179;</div>
+    <h2 style="font-size:18px">Verifying Payment Method...</h2>
+    <div class="verify-list" style="text-align:left;max-width:320px;margin:16px auto">
+      <div class="verify-item" id="pm-vi-0"><div class="vi-icon">&#9675;</div> Processing ${type==='card'?'card':'bank account'}...</div>
+      <div class="verify-item" id="pm-vi-1"><div class="vi-icon">&#9675;</div> Validating details...</div>
+      <div class="verify-item" id="pm-vi-2"><div class="vi-icon">&#9675;</div> Activating invoicing...</div>
+    </div>`;
+  runVerifySequence(['pm-vi-0','pm-vi-1','pm-vi-2'],()=>{
+    const mockCards = [{brand:'Visa',last4:'4242'},{brand:'MC',last4:'5555'},{brand:'Amex',last4:'3782'}];
+    const mockBanks = [{brand:'Chase',last4:'6789'},{brand:'BofA',last4:'4321'},{brand:'Wells',last4:'8765'}];
+    const mock = type==='card' ? mockCards[Object.keys(S.paymentMethods).length % 3] : mockBanks[Object.keys(S.paymentMethods).length % 3];
+    S.paymentMethods[entityIdx] = {type:type, brand:mock.brand, last4:mock.last4};
+    card.innerHTML=`
+      <div style="font-size:48px;margin-bottom:12px">&#10003;</div>
+      <h2 style="font-size:18px;color:var(--green-text)">Payment Method Added</h2>
+      <div style="font-size:13px;color:var(--text-sec);margin:12px 0">${type==='card'?'Credit Card':'ACH'} ending in ${mock.last4} is now active for <strong>${S.billingEntities[entityIdx].name || 'Entity '+(entityIdx+1)}</strong>.</div>
+      <button class="btn btn-primary" onclick="closeMilestone();navigate(S.phase,S.step)">Done</button>`;
+    addAgentMessage('Payment method added for ' + (S.billingEntities[entityIdx].name || 'Entity '+(entityIdx+1)) + '. ' + (allEntitiesHavePayment() ? 'All entities now have payment methods — you can continue.' : 'Add payment for the remaining entities to continue.'));
   });
+}
+
+function showBulkPaymentModal(){
+  const unpaid = S.billingEntities.map((_,i)=>i).filter(i=>!S.paymentMethods[i]);
+  if(unpaid.length === 0){ addAgentMessage('All entities already have payment methods.'); return; }
+  const card = document.getElementById('milestone-card');
+  card.innerHTML=`
+    <div style="font-size:32px;margin-bottom:8px">&#128179;</div>
+    <h2 style="font-size:18px">Add Payment for Multiple Entities</h2>
+    <div style="font-size:12px;color:var(--text-sec);margin-bottom:16px">One payment method will be applied to the selected entities below.</div>
+    <div style="text-align:left;max-width:400px;margin:0 auto">
+      <div style="margin-bottom:14px">
+        ${S.billingEntities.map((ent,idx)=>`
+        <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--rs);background:${S.paymentMethods[idx]?'var(--bg)':'var(--white)'};margin-bottom:4px;font-size:13px;cursor:${S.paymentMethods[idx]?'default':'pointer'};${S.paymentMethods[idx]?'opacity:.5':''}">
+          <input type="checkbox" class="bulk-pm-check" data-idx="${idx}" ${S.paymentMethods[idx]?'disabled checked':'checked'} style="width:16px;height:16px;accent-color:var(--teal)">
+          <span style="flex:1;font-weight:500">${ent.name || 'Entity '+(idx+1)}</span>
+          ${S.paymentMethods[idx]?`<span style="font-size:11px;color:var(--green-text)">Already added</span>`:''}
+        </label>`).join('')}
+      </div>
+      <div class="form-grid">
+        <div class="fg full">
+          <div class="fl">Payment Type</div>
+          <select class="fi" id="bulk-pm-type" onchange="toggleBulkPaymentFields()">
+            <option value="card">Credit Card</option>
+            <option value="ach">ACH Bank Account</option>
+          </select>
+        </div>
+        <div id="bulk-card-fields">
+          <div class="form-grid">
+            <div class="fg full"><div class="fl">Card Number</div><input class="fi" placeholder="4242 4242 4242 4242" maxlength="19"></div>
+            <div class="fg"><div class="fl">Expiry</div><input class="fi" placeholder="MM / YY"></div>
+            <div class="fg"><div class="fl">CVC</div><input class="fi" placeholder="123" maxlength="4"></div>
+            <div class="fg full"><div class="fl">Name on Card</div><input class="fi" value="${C.ap.name}"></div>
+          </div>
+        </div>
+        <div id="bulk-ach-fields" style="display:none">
+          <div class="form-grid">
+            <div class="fg full"><div class="fl">Bank Name</div><input class="fi" placeholder="e.g., Chase, Bank of America"></div>
+            <div class="fg"><div class="fl">Routing Number</div><input class="fi" placeholder="9 digits"></div>
+            <div class="fg"><div class="fl">Account Number</div><input class="fi" placeholder="Account number"></div>
+            <div class="fg full"><div class="fl">Account Holder</div><input class="fi" value="${C.billing.entity}"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeMilestone()">Cancel</button>
+      <button class="btn btn-teal" onclick="processBulkPayment()">Verify & Add Payment</button>
+    </div>`;
+  document.getElementById('milestone-overlay').classList.add('show');
+}
+
+function toggleBulkPaymentFields(){
+  const type = document.getElementById('bulk-pm-type').value;
+  document.getElementById('bulk-card-fields').style.display = type==='card' ? '' : 'none';
+  document.getElementById('bulk-ach-fields').style.display = type==='ach' ? '' : 'none';
+}
+
+function processBulkPayment(){
+  const type = document.getElementById('bulk-pm-type').value;
+  const checks = document.querySelectorAll('.bulk-pm-check:checked:not(:disabled)');
+  const indices = Array.from(checks).map(c=>parseInt(c.dataset.idx));
+  if(indices.length === 0){ addAgentMessage('No entities selected for bulk payment.'); closeMilestone(); return; }
+  const mock = type==='card' ? {brand:'Visa',last4:'4242'} : {brand:'Chase',last4:'6789'};
+  const card = document.getElementById('milestone-card');
+  card.innerHTML=`
+    <div style="font-size:32px;margin-bottom:12px">&#128179;</div>
+    <h2 style="font-size:18px">Verifying Payment Method...</h2>
+    <div class="verify-list" style="text-align:left;max-width:320px;margin:16px auto">
+      <div class="verify-item" id="bpm-vi-0"><div class="vi-icon">&#9675;</div> Processing ${type==='card'?'card':'bank account'}...</div>
+      <div class="verify-item" id="bpm-vi-1"><div class="vi-icon">&#9675;</div> Validating details...</div>
+      <div class="verify-item" id="bpm-vi-2"><div class="vi-icon">&#9675;</div> Applying to ${indices.length} ${indices.length===1?'entity':'entities'}...</div>
+    </div>`;
+  runVerifySequence(['bpm-vi-0','bpm-vi-1','bpm-vi-2'],()=>{
+    indices.forEach(i=>{ S.paymentMethods[i] = {type:type, brand:mock.brand, last4:mock.last4}; });
+    card.innerHTML=`
+      <div style="font-size:48px;margin-bottom:12px">&#10003;</div>
+      <h2 style="font-size:18px;color:var(--green-text)">Payment Added for ${indices.length} ${indices.length===1?'Entity':'Entities'}</h2>
+      <div style="font-size:13px;color:var(--text-sec);margin:12px 0">${type==='card'?'Credit Card':'ACH'} ending in ${mock.last4} is now active.</div>
+      <button class="btn btn-primary" onclick="closeMilestone();navigate(S.phase,S.step)">Done</button>`;
+    addAgentMessage('Payment method applied to ' + indices.length + ' entities. ' + (allEntitiesHavePayment() ? 'All entities are set — you can continue.' : 'Add payment for the remaining entities to proceed.'));
+  });
+}
+
+function editPaymentMethod(entityIdx){
+  showPaymentForm(entityIdx);
+}
+
+function deletePaymentMethod(entityIdx){
+  // Cannot delete if it's the only payment method
+  const totalPaid = Object.keys(S.paymentMethods).length;
+  if(totalPaid <= 1){
+    const card = document.getElementById('milestone-card');
+    card.innerHTML=`
+      <div style="font-size:40px;margin-bottom:12px">&#9888;</div>
+      <h2 style="font-size:18px">Cannot Remove Payment Method</h2>
+      <div style="text-align:left;background:var(--bg);border-radius:var(--rs);padding:16px;margin:16px 0;font-size:13px;line-height:1.8;color:var(--text-sec)">
+        At least one payment method is required. To remove this payment method, first add a replacement for <strong>${S.billingEntities[entityIdx].name || 'Entity '+(entityIdx+1)}</strong>.
+      </div>
+      <button class="btn btn-primary" onclick="closeMilestone()">Got It</button>`;
+    document.getElementById('milestone-overlay').classList.add('show');
+    return;
+  }
+  // Confirm deletion
+  const pm = S.paymentMethods[entityIdx];
+  const card = document.getElementById('milestone-card');
+  card.innerHTML=`
+    <div style="font-size:40px;margin-bottom:12px">&#128465;</div>
+    <h2 style="font-size:18px">Remove Payment Method?</h2>
+    <div style="text-align:left;background:var(--bg);border-radius:var(--rs);padding:16px;margin:16px 0;font-size:13px;line-height:1.8;color:var(--text-sec)">
+      Remove <strong>${pm.type==='card'?'Credit Card':'ACH'} ending in ${pm.last4}</strong> from <strong>${S.billingEntities[entityIdx].name || 'Entity '+(entityIdx+1)}</strong>?<br><br>
+      You will need to add a new payment method before you can continue.
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-ghost" onclick="closeMilestone()">Cancel</button>
+      <button class="btn btn-ghost" style="color:var(--red-text)" onclick="confirmDeletePayment(${entityIdx})">Remove</button>
+    </div>`;
+  document.getElementById('milestone-overlay').classList.add('show');
+}
+
+function confirmDeletePayment(entityIdx){
+  delete S.paymentMethods[entityIdx];
+  closeMilestone();
+  navigate(S.phase, S.step);
+  addAgentMessage('Payment method removed. You\'ll need to add a new one for ' + (S.billingEntities[entityIdx].name || 'Entity '+(entityIdx+1)) + ' before continuing.');
+}
+
+function allEntitiesHavePayment(){
+  return S.billingEntities.every((_,i)=>S.paymentMethods[i]);
+}
+
+function validateAndContinuePayment(){
+  if(!allEntitiesHavePayment()){
+    addAgentMessage('Every billing entity needs a payment method before you can continue. Add payment for the remaining entities.');
+    return;
+  }
+  completeAndNext();
 }
 
 // ── PLATFORM CONNECT ENGINE ──
