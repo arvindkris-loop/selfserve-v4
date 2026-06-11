@@ -331,13 +331,33 @@ const C = {
   cfo:{name:'Michael Torres',email:'michael.torres@starbird.com'},
   ap:{name:'Lisa Park',email:'lisa.park@starbird.com'},
   brands:[{name:'Starbird Chicken',type:'Real',ownership:'Franchisor'},{name:'Starbird Wings',type:'Virtual',ownership:'Franchisor'}],
-  locations:52,
+  locations:52, // contracted billable locations
+  totalLocations:80, // actual locations with platform access
   platforms:['DoorDash','Uber Eats','Grubhub'],
   products:[{name:'Protect',price:'$150/loc/mo'},{name:'TrueROI',price:'$200/loc/mo'}],
   billing:{entity:'Starbird Holdings LLC',address:'1420 El Camino Real, Menlo Park, CA 94025',segment:'QSR'},
   fiscal:{yearStart:'January',period:'Calendar Month (12-period)'},
   contract:{term:'24 months',mrr:'$18,200',acv:'$218,400'}
 };
+
+// Sample location data (representative subset — full list implied)
+const LOCATIONS = [
+  {id:1,name:'Starbird #001 Sunnyvale',platform:'DoorDash',brand:'Starbird Chicken',region:'Bay Area',billable:true},
+  {id:2,name:'Starbird #002 Palo Alto',platform:'DoorDash',brand:'Starbird Chicken',region:'Bay Area',billable:true},
+  {id:3,name:'Starbird #003 San Jose',platform:'Uber Eats',brand:'Starbird Chicken',region:'Bay Area',billable:true},
+  {id:4,name:'Starbird #004 Mountain View',platform:'DoorDash',brand:'Starbird Chicken',region:'Bay Area',billable:true},
+  {id:5,name:'Starbird #005 Cupertino',platform:'Uber Eats',brand:'Starbird Chicken',region:'Bay Area',billable:true},
+  {id:6,name:'Starbird #006 Santa Clara',platform:'Grubhub',brand:'Starbird Chicken',region:'Bay Area',billable:true},
+  {id:7,name:'Wings #001 Oakland',platform:'DoorDash',brand:'Starbird Wings',region:'East Bay',billable:true},
+  {id:8,name:'Wings #002 Berkeley',platform:'Grubhub',brand:'Starbird Wings',region:'East Bay',billable:true},
+  {id:9,name:'Wings #003 Walnut Creek',platform:'Uber Eats',brand:'Starbird Wings',region:'East Bay',billable:true},
+  {id:10,name:'Wings #004 Fremont',platform:'DoorDash',brand:'Starbird Wings',region:'East Bay',billable:true},
+  {id:11,name:'Starbird #007 Daly City',platform:'DoorDash',brand:'Starbird Chicken',region:'Peninsula',billable:false},
+  {id:12,name:'Starbird #008 Redwood City',platform:'Uber Eats',brand:'Starbird Chicken',region:'Peninsula',billable:false},
+  {id:13,name:'Wings #005 San Leandro',platform:'Grubhub',brand:'Starbird Wings',region:'East Bay',billable:false},
+  {id:14,name:'Starbird #009 Milpitas',platform:'DoorDash',brand:'Starbird Chicken',region:'South Bay',billable:false},
+  {id:15,name:'Starbird #010 Campbell',platform:'Uber Eats',brand:'Starbird Chicken',region:'South Bay',billable:false}
+];
 
 // ════════════════════════════════════════════
 // PHASE/STEP DEFINITIONS
@@ -389,7 +409,9 @@ const S = {
   agentOpen:false, completed:new Set(),
   platformSub:{}, // sub-step state for platform connects
   role:null, cfoProgress:0,
-  errorShown:false, billingStructure:null
+  errorShown:false, billingStructure:null,
+  billableSelected:new Set(LOCATIONS.filter(l=>l.billable).map(l=>l.id)), // pre-select contracted locations
+  billingEntities:[{name:C.billing.entity,address:C.billing.address,segment:C.billing.segment,apName:C.ap.name,apEmail:C.ap.email}] // primary entity from contract
 };
 
 function stepKey(p,s){ return `${p}-${s}`; }
@@ -432,7 +454,8 @@ const AGENT = {
     `After this, I'll verify all your stores are connected.`
   ],
   'access-summary':[
-    `Excellent! All three platforms are connected.`,
+    `Excellent! All three platforms are connected — I found ${C.totalLocations} stores total.`,
+    `Your contract covers ${C.locations} billable locations. In the next step, you'll choose which locations are included in billing.`,
     `${C.cfo.name} is working on billing setup in parallel. You can continue with Business Setup now.`
   ],
   'business-brands':[
@@ -440,8 +463,9 @@ const AGENT = {
     `You can also add new brands if anything's missing.`
   ],
   'business-locations':[
-    `I've auto-mapped your ${C.locations} locations to brands based on store names.`,
-    `Just confirm the mapping looks correct. You can reassign any location by clicking on it.`
+    `I've found ${C.totalLocations} locations across your delivery platforms and auto-mapped them to brands.`,
+    `Your contract covers ${C.locations} billable locations. Use the checkboxes to select which ones should be billed. The rest still get platform access.`,
+    `I've pre-selected the first ${C.locations} locations for you — adjust as needed.`
   ],
   'business-calendar':[
     `I've set the most common calendar configuration for QSR businesses.`,
@@ -460,7 +484,8 @@ const AGENT = {
     `This billing entity was pulled from your signed contract. Just confirm it looks correct.`
   ],
   'billing-structure':[
-    `This is an important decision — it determines how your invoices are organized.`,
+    `This is an important decision — it determines how your invoices are organized across your billable locations.`,
+    `If you choose Custom Grouping, you can create multiple billing entities — each with its own AP contact and invoice.`,
     `Most QSR franchisors with ${C.locations}+ locations choose "Single Entity" for simplicity.`
   ],
   'billing-products':[
@@ -689,10 +714,10 @@ RENDERERS['access-summary'] = ()=>`
 <div class="fade-up" style="text-align:center;padding:20px 0">
   <div style="font-size:48px;margin-bottom:12px">&#127881;</div>
   <div class="step-title" style="text-align:center">Platform Access Complete!</div>
-  <div class="step-desc" style="text-align:center;margin:0 auto 24px">All 3 platforms connected. ${C.locations} stores verified.</div>
+  <div class="step-desc" style="text-align:center;margin:0 auto 24px">All 3 platforms connected. ${C.totalLocations} stores found across your delivery platforms.</div>
   <div class="card" style="text-align:left;max-width:440px;margin:0 auto 20px">
     <div class="card-body" style="padding:0">
-      ${[{n:'DoorDash',c:'dd',s:22},{n:'Uber Eats',c:'ue',s:18},{n:'Grubhub',c:'gh',s:12}].map((p,i)=>`
+      ${[{n:'DoorDash',c:'dd',s:34},{n:'Uber Eats',c:'ue',s:28},{n:'Grubhub',c:'gh',s:18}].map((p,i)=>`
       <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;${i<2?'border-bottom:1px solid var(--border)':''}">
         <div class="platform-logo ${p.c}" style="width:32px;height:32px;font-size:13px">${p.n[0]}</div>
         <div style="flex:1;font-size:13px;font-weight:600">${p.n}</div>
@@ -700,10 +725,11 @@ RENDERERS['access-summary'] = ()=>`
       </div>`).join('')}
     </div>
     <div class="card-foot">
-      <span style="font-size:12px;color:var(--text-sec)">Total stores verified</span>
-      <span style="font-size:14px;font-weight:700;color:var(--green-text)">52 / 52 (100%)</span>
+      <span style="font-size:12px;color:var(--text-sec)">Total stores found</span>
+      <span style="font-size:14px;font-weight:700;color:var(--green-text)">${C.totalLocations} stores across 3 platforms</span>
     </div>
   </div>
+  <div class="banner info" style="max-width:440px;margin:0 auto 20px;text-align:left"><span class="banner-icon">&#128203;</span> Your contract covers <strong>${C.locations} billable locations</strong>. We found <strong>${C.totalLocations} total stores</strong> across your platforms. You'll select which ${C.locations} locations are part of your billable plan in the next section.</div>
   <div class="threshold-bar" style="max-width:440px;margin:0 auto 20px">
     <div class="tb-labels"><span>0%</span><span style="color:var(--green-text);font-weight:600">Threshold: 80%</span><span>100%</span></div>
     <div class="tb-track"><div class="tb-filled" style="width:100%"></div><div class="tb-marker" style="left:80%"></div></div>
@@ -727,7 +753,7 @@ RENDERERS['business-brands'] = ()=>`
         <div class="fg"><div class="fl">Brand Name</div><input class="fi prefilled" value="${b.name}"></div>
         <div class="fg"><div class="fl">Type</div><select class="fi prefilled"><option>${b.type}</option><option>Real</option><option>Virtual</option></select></div>
         <div class="fg"><div class="fl">Ownership</div><select class="fi prefilled"><option>${b.ownership}</option><option>Franchisor</option><option>Franchisee</option><option>Fully Owned</option><option>CPA</option></select></div>
-        <div class="fg"><div class="fl">Locations</div><input class="fi prefilled" value="${i===0?'38':'14'}" readonly></div>
+        <div class="fg"><div class="fl">Locations</div><input class="fi prefilled" value="${i===0?'55':'25'}" readonly title="Total locations across platforms"></div>
       </div>
     </div>
   </div>`).join('')}
@@ -740,36 +766,60 @@ RENDERERS['business-brands'] = ()=>`
 </div>`;
 
 // ── BUSINESS: LOCATIONS ──
-RENDERERS['business-locations'] = ()=>`
+RENDERERS['business-locations'] = ()=>{
+  const selCount = S.billableSelected.size;
+  const contracted = C.locations;
+  const remaining = contracted - selCount;
+  const statusColor = selCount === contracted ? 'var(--green-text)' : selCount > contracted ? 'var(--red-text)' : 'var(--orange)';
+  const statusMsg = selCount === contracted ? 'Billable selection complete' : selCount > contracted ? `${selCount - contracted} over contracted count` : `${remaining} more to select`;
+  return `
 <div class="fade-up">
   <div class="step-eyebrow">Business Setup <span class="time-pill">~3 min</span></div>
-  <div class="step-title">Location Mapping</div>
-  <div class="step-desc">${C.locations} locations auto-mapped to brands by store name. Confirm or reassign.</div>
-  <div class="banner success"><span class="banner-icon">&#128205;</span> Auto-mapped from delivery platform data</div>
+  <div class="step-title">Location Mapping & Billable Selection</div>
+  <div class="step-desc">${C.totalLocations} locations found across your platforms. Select which ${C.locations} are part of your billable plan.</div>
+  <div class="banner info"><span class="banner-icon">&#128203;</span> Your contract covers <strong>${C.locations} billable locations</strong> out of <strong>${C.totalLocations} total</strong>. Check the locations you want included in billing. Non-billable locations still get platform access but won't be billed.</div>
+
+  <div class="card" style="border-color:${statusColor};margin-bottom:4px">
+    <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px">
+      <div style="font-size:13px"><strong id="billable-count">${selCount}</strong> of <strong>${contracted}</strong> billable locations selected</div>
+      <div id="billable-status" style="font-size:12px;font-weight:600;color:${statusColor}">${statusMsg}</div>
+    </div>
+    <div style="height:4px;background:var(--bg)"><div id="billable-bar" style="height:100%;background:${statusColor};width:${Math.min(selCount/contracted*100,100)}%;transition:width .3s"></div></div>
+  </div>
+
   <div class="card">
-    <div class="card-head">Location Summary <span style="font-size:12px;font-weight:500;color:var(--text-light)">${C.locations} locations</span></div>
+    <div class="card-head">All Locations <span style="font-size:12px;font-weight:500;color:var(--text-light)">${C.totalLocations} locations</span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:10px" onclick="selectAllBillable()">Select First ${C.locations}</button>
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:10px" onclick="clearAllBillable()">Clear All</button>
+      </div>
+    </div>
     <div class="card-body" style="padding:0">
       <table class="data-table">
-        <thead><tr><th>Store</th><th>Platform</th><th>Brand</th><th>Region</th></tr></thead>
+        <thead><tr><th style="width:40px">Bill</th><th>Store</th><th>Platform</th><th>Brand</th><th>Region</th></tr></thead>
         <tbody>
-          ${[
-            ['Starbird #001 Sunnyvale','DoorDash','Starbird Chicken','Bay Area'],
-            ['Starbird #002 Palo Alto','DoorDash','Starbird Chicken','Bay Area'],
-            ['Starbird #003 San Jose','Uber Eats','Starbird Chicken','Bay Area'],
-            ['Wings #001 Oakland','DoorDash','Starbird Wings','East Bay'],
-            ['Wings #002 Berkeley','Grubhub','Starbird Wings','East Bay'],
-          ].map(r=>`<tr><td style="font-weight:500">${r[0]}</td><td>${r[1]}</td><td><select class="fi prefilled" style="padding:4px 24px 4px 8px;font-size:11px">${C.brands.map(b=>`<option ${b.name===r[2]?'selected':''}>${b.name}</option>`).join('')}</select></td><td>${r[3]}</td></tr>`).join('')}
-          <tr><td colspan="4" style="text-align:center;color:var(--text-light);font-size:11px;padding:12px">... and ${C.locations-5} more locations</td></tr>
+          ${LOCATIONS.map(loc=>`<tr style="${S.billableSelected.has(loc.id)?'background:var(--green-soft)':''}">
+            <td style="text-align:center"><input type="checkbox" ${S.billableSelected.has(loc.id)?'checked':''} onchange="toggleBillable(${loc.id},this)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--green)"></td>
+            <td style="font-weight:500;font-size:12px">${loc.name}</td>
+            <td style="font-size:12px">${loc.platform}</td>
+            <td><select class="fi prefilled" style="padding:4px 24px 4px 8px;font-size:11px">${C.brands.map(b=>`<option ${b.name===loc.brand?'selected':''}>${b.name}</option>`).join('')}</select></td>
+            <td style="font-size:12px">${loc.region}</td>
+          </tr>`).join('')}
+          <tr><td colspan="5" style="text-align:center;color:var(--text-light);font-size:11px;padding:12px">... and ${C.totalLocations - LOCATIONS.length} more locations (${C.totalLocations - LOCATIONS.length} shown in full list view)</td></tr>
         </tbody>
       </table>
     </div>
-    <div class="card-foot"><span style="font-size:12px;color:var(--text-sec)">Starbird Chicken: 38 &nbsp;|&nbsp; Starbird Wings: 14</span><button class="btn btn-ghost" style="padding:6px 14px;font-size:11px">View All</button></div>
+    <div class="card-foot">
+      <span style="font-size:12px;color:var(--text-sec)">Starbird Chicken: ${LOCATIONS.filter(l=>l.brand==='Starbird Chicken'&&S.billableSelected.has(l.id)).length} billable &nbsp;|&nbsp; Starbird Wings: ${LOCATIONS.filter(l=>l.brand==='Starbird Wings'&&S.billableSelected.has(l.id)).length} billable</span>
+      <button class="btn btn-ghost" style="padding:6px 14px;font-size:11px">View All ${C.totalLocations}</button>
+    </div>
   </div>
   <div class="step-actions">
     <button class="btn btn-ghost btn-back" onclick="prev()">Back</button>
-    <button class="btn btn-primary" onclick="completeAndNext()">Confirm Mapping &rarr;</button>
+    <button class="btn btn-primary" onclick="confirmLocations()">Confirm Mapping &rarr;</button>
   </div>
-</div>`;
+</div>`};
+
 
 // ── BUSINESS: CALENDAR ──
 RENDERERS['business-calendar'] = ()=>`
@@ -887,26 +937,27 @@ RENDERERS['billing-entity'] = ()=>`
 // ── BILLING: STRUCTURE ──
 RENDERERS['billing-structure'] = ()=>{
   const sel = S.billingStructure;
+  const billCount = S.billableSelected.size;
   return `
 <div class="fade-up">
   <div class="step-eyebrow" style="color:var(--teal-text)">Billing & Payment <span class="time-pill">~2 min</span></div>
   <div class="step-title">How should we structure your billing?</div>
-  <div class="step-desc">This determines how your invoices are organized across ${C.locations} locations.</div>
+  <div class="step-desc">This determines how your invoices are organized across your <strong>${billCount} billable locations</strong> (out of ${C.totalLocations} total).</div>
   <div class="choices" id="structure-choices">
     <div class="choice ${sel==='single'?'selected':''}" onclick="selectStructure('single')">
       <div class="choice-icon">&#128203;</div>
       <h3>Single Entity</h3>
-      <p>All ${C.locations} locations billed under <strong>${C.billing.entity}</strong>. One consolidated invoice per billing cycle.</p>
+      <p>All ${billCount} billable locations billed under <strong>${C.billing.entity}</strong>. One consolidated invoice per billing cycle.</p>
     </div>
     <div class="choice ${sel==='per-location'?'selected':''}" onclick="selectStructure('per-location')">
       <div class="choice-icon">&#128200;</div>
       <h3>Per-Location</h3>
-      <p>Each location receives its own invoice. Ideal for franchise operators who need separate cost tracking.</p>
+      <p>Each billable location receives its own invoice. Ideal for franchise operators who need separate cost tracking.</p>
     </div>
     <div class="choice ${sel==='custom'?'selected':''}" onclick="selectStructure('custom')">
       <div class="choice-icon">&#128736;</div>
       <h3>Custom Grouping</h3>
-      <p>Group locations into billing clusters (e.g., by region, brand, or franchisee). Fully flexible.</p>
+      <p>Group your ${billCount} billable locations into multiple billing entities (e.g., by region, brand, or franchisee). Each entity gets its own invoice.</p>
     </div>
   </div>
   <div id="structure-detail">${renderStructureDetail(sel)}</div>
@@ -918,14 +969,16 @@ RENDERERS['billing-structure'] = ()=>{
 </div>`};
 
 function renderStructureDetail(sel){
+  const billCount = S.billableSelected.size;
   if(sel==='single') return `
     <div class="card fade-up" style="border-color:var(--teal);margin-top:4px">
       <div class="card-head" style="background:var(--teal-soft);color:var(--teal-text)">Single Entity Summary</div>
       <div class="card-body" style="font-size:13px;line-height:1.8">
-        <div style="display:flex;justify-content:space-between"><span>Billing entity</span><strong>${C.billing.entity}</strong></div>
-        <div style="display:flex;justify-content:space-between"><span>Locations covered</span><strong>All ${C.locations} locations</strong></div>
+        <div style="display:flex;justify-content:space-between"><span>Billing entity</span><strong>${S.billingEntities[0].name}</strong></div>
+        <div style="display:flex;justify-content:space-between"><span>Address</span><strong>${S.billingEntities[0].address}</strong></div>
+        <div style="display:flex;justify-content:space-between"><span>Billable locations</span><strong>${billCount} of ${C.totalLocations} total</strong></div>
         <div style="display:flex;justify-content:space-between"><span>Invoice frequency</span><strong>Monthly, consolidated</strong></div>
-        <div style="display:flex;justify-content:space-between"><span>Invoice recipient</span><strong>${C.ap.name} (${C.ap.email})</strong></div>
+        <div style="display:flex;justify-content:space-between"><span>AP contact</span><strong>${S.billingEntities[0].apName} (${S.billingEntities[0].apEmail})</strong></div>
         <div style="display:flex;justify-content:space-between"><span>Effective</span><strong>Immediately upon payment setup</strong></div>
       </div>
     </div>`;
@@ -933,46 +986,76 @@ function renderStructureDetail(sel){
     <div class="card fade-up" style="border-color:var(--teal);margin-top:4px">
       <div class="card-head" style="background:var(--teal-soft);color:var(--teal-text)">Per-Location Billing Setup</div>
       <div class="card-body">
-        <div style="font-size:13px;color:var(--text-sec);margin-bottom:12px">Each location will receive a separate monthly invoice. Here's a preview of how your locations will be mapped:</div>
+        <div style="font-size:13px;color:var(--text-sec);margin-bottom:12px">Each billable location will receive a separate monthly invoice. You can assign a billing entity per location or use a default for all.</div>
         <table class="data-table">
-          <thead><tr><th>Location</th><th>Brand</th><th>Billing Contact</th><th>Invoice</th></tr></thead>
+          <thead><tr><th>Location</th><th>Brand</th><th>Billing Entity</th><th>Invoice</th></tr></thead>
           <tbody>
-            <tr><td style="font-weight:500">Starbird #001 Sunnyvale</td><td>Starbird Chicken</td><td>${C.ap.name}</td><td style="color:var(--teal-text);font-weight:600">Separate</td></tr>
-            <tr><td style="font-weight:500">Starbird #002 Palo Alto</td><td>Starbird Chicken</td><td>${C.ap.name}</td><td style="color:var(--teal-text);font-weight:600">Separate</td></tr>
-            <tr><td style="font-weight:500">Wings #001 Oakland</td><td>Starbird Wings</td><td>${C.ap.name}</td><td style="color:var(--teal-text);font-weight:600">Separate</td></tr>
-            <tr><td colspan="4" style="text-align:center;color:var(--text-light);font-size:11px">... and ${C.locations-3} more locations</td></tr>
+            ${LOCATIONS.filter(l=>S.billableSelected.has(l.id)).slice(0,4).map(loc=>`
+            <tr><td style="font-weight:500;font-size:12px">${loc.name}</td><td style="font-size:12px">${loc.brand}</td><td style="font-size:12px">${S.billingEntities[0].name}</td><td style="color:var(--teal-text);font-weight:600;font-size:12px">Separate</td></tr>`).join('')}
+            <tr><td colspan="4" style="text-align:center;color:var(--text-light);font-size:11px">... and ${billCount-4} more billable locations</td></tr>
           </tbody>
         </table>
-        <div class="banner warn" style="margin-top:12px"><span class="banner-icon">&#9202;</span> Per-location invoicing will be fully configured within <strong>1 business day</strong> after you complete payment setup. You'll receive a confirmation email.</div>
-        <div class="form-grid" style="margin-top:12px">
-          <div class="fg full"><div class="fl">Default Billing Contact for All Locations</div><select class="fi prefilled"><option>${C.ap.name} (${C.ap.email})</option><option>Assign per location (available after setup)</option></select></div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px">Billing Entity for All Locations</div>
+          <div class="form-grid">
+            <div class="fg full"><div class="fl">Entity Name</div><input class="fi prefilled" value="${S.billingEntities[0].name}"></div>
+            <div class="fg full"><div class="fl">Address</div><input class="fi prefilled" value="${S.billingEntities[0].address}"></div>
+            <div class="fg"><div class="fl">Segment</div><input class="fi prefilled" value="${S.billingEntities[0].segment}" readonly></div>
+            <div class="fg"><div class="fl">AP Contact</div><input class="fi prefilled" value="${S.billingEntities[0].apName}"></div>
+            <div class="fg full"><div class="fl">AP Email</div><input class="fi prefilled" value="${S.billingEntities[0].apEmail}"></div>
+          </div>
         </div>
+        <div class="banner warn" style="margin-top:12px"><span class="banner-icon">&#9202;</span> Per-location invoicing will be fully configured within <strong>1 business day</strong> after payment setup. You'll receive a confirmation email.</div>
       </div>
     </div>`;
   if(sel==='custom') return `
     <div class="card fade-up" style="border-color:var(--teal);margin-top:4px">
-      <div class="card-head" style="background:var(--teal-soft);color:var(--teal-text)">Custom Grouping Setup</div>
+      <div class="card-head" style="background:var(--teal-soft);color:var(--teal-text)">Custom Grouping &mdash; Define Your Billing Entities
+        <span style="font-size:11px;font-weight:500;color:var(--text-light);margin-left:auto">${S.billingEntities.length} ${S.billingEntities.length===1?'entity':'entities'}</span>
+      </div>
       <div class="card-body">
-        <div style="font-size:13px;color:var(--text-sec);margin-bottom:14px">Group your ${C.locations} locations into billing clusters. Common groupings include:</div>
+        <div style="font-size:13px;color:var(--text-sec);margin-bottom:14px">Create billing entities and assign your ${billCount} billable locations to each. Every entity gets its own invoice with its own AP contact.</div>
+
         <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-          <div style="flex:1;min-width:140px;background:var(--bg);padding:12px;border-radius:var(--rs);font-size:12px;text-align:center">
-            <div style="font-weight:700;margin-bottom:4px">By Brand</div>
-            <div style="color:var(--text-sec)">Starbird Chicken (38 locations)<br>Starbird Wings (14 locations)</div>
+          <div style="flex:1;min-width:120px;background:var(--bg);padding:10px;border-radius:var(--rs);font-size:11px;text-align:center;cursor:pointer;border:2px solid transparent" onclick="applyGroupingPreset('brand')">
+            <div style="font-weight:700;margin-bottom:3px">By Brand</div>
+            <div style="color:var(--text-sec)">2 entities</div>
           </div>
-          <div style="flex:1;min-width:140px;background:var(--bg);padding:12px;border-radius:var(--rs);font-size:12px;text-align:center">
-            <div style="font-weight:700;margin-bottom:4px">By Region</div>
-            <div style="color:var(--text-sec)">Bay Area (28 locations)<br>East Bay (14 locations)<br>South Bay (10 locations)</div>
+          <div style="flex:1;min-width:120px;background:var(--bg);padding:10px;border-radius:var(--rs);font-size:11px;text-align:center;cursor:pointer;border:2px solid transparent" onclick="applyGroupingPreset('region')">
+            <div style="font-weight:700;margin-bottom:3px">By Region</div>
+            <div style="color:var(--text-sec)">3 entities</div>
           </div>
-          <div style="flex:1;min-width:140px;background:var(--bg);padding:12px;border-radius:var(--rs);font-size:12px;text-align:center">
-            <div style="font-weight:700;margin-bottom:4px">By Franchisee</div>
-            <div style="color:var(--text-sec)">Group locations by ownership entity for separate invoicing</div>
+          <div style="flex:1;min-width:120px;background:var(--bg);padding:10px;border-radius:var(--rs);font-size:11px;text-align:center;cursor:pointer;border:2px solid transparent" onclick="applyGroupingPreset('manual')">
+            <div style="font-weight:700;margin-bottom:3px">Manual</div>
+            <div style="color:var(--text-sec)">Define your own</div>
           </div>
         </div>
-        <div class="banner info"><span class="banner-icon">&#128222;</span> Our billing team will schedule a brief 15-minute call with <strong>${C.ap.name}</strong> to finalize your grouping. This call will happen within <strong>1 business day</strong> and does not block your remaining setup.</div>
-        <div class="form-grid" style="margin-top:12px">
-          <div class="fg full"><div class="fl">Preferred Grouping</div><select class="fi"><option>Select a grouping preference...</option><option>By Brand</option><option>By Region</option><option>By Franchisee / Ownership Entity</option><option>Other (describe on the call)</option></select></div>
-          <div class="fg full"><div class="fl">Additional Notes (Optional)</div><textarea class="fi" rows="2" placeholder="Any details to help our billing team prepare for the call..." style="resize:vertical;font-family:inherit"></textarea></div>
+
+        <div id="billing-entities-list">
+          ${S.billingEntities.map((ent,idx)=>`
+          <div class="card" style="margin-bottom:10px;border-color:var(--teal)">
+            <div class="card-head" style="background:var(--teal-soft);color:var(--teal-text);font-size:12px">
+              Billing Entity ${idx+1}: ${ent.name}
+              ${idx>0?`<button class="btn btn-ghost" style="margin-left:auto;padding:2px 8px;font-size:10px;color:var(--red-text)" onclick="removeBillingEntity(${idx})">Remove</button>`:''}
+            </div>
+            <div class="card-body" style="padding:12px">
+              <div class="form-grid">
+                <div class="fg full"><div class="fl">Entity Name</div><input class="fi ${idx===0?'prefilled':''}" value="${ent.name}" onchange="updateBillingEntity(${idx},'name',this.value)"></div>
+                <div class="fg full"><div class="fl">Address</div><input class="fi ${idx===0?'prefilled':''}" value="${ent.address}" onchange="updateBillingEntity(${idx},'address',this.value)"></div>
+                <div class="fg"><div class="fl">Segment</div><input class="fi ${idx===0?'prefilled':''}" value="${ent.segment}" onchange="updateBillingEntity(${idx},'segment',this.value)"></div>
+                <div class="fg"><div class="fl">AP Contact</div><input class="fi ${idx===0?'prefilled':''}" value="${ent.apName}" onchange="updateBillingEntity(${idx},'apName',this.value)"></div>
+                <div class="fg full"><div class="fl">AP Email</div><input class="fi ${idx===0?'prefilled':''}" value="${ent.apEmail}" onchange="updateBillingEntity(${idx},'apEmail',this.value)"></div>
+              </div>
+              <div style="margin-top:10px;font-size:12px;color:var(--text-sec)">
+                <strong>Assigned locations:</strong> ${getEntityLocationCount(idx)} of ${billCount} billable
+              </div>
+            </div>
+          </div>`).join('')}
         </div>
+
+        <button class="btn btn-ghost" style="margin-top:8px;width:100%;border-style:dashed" onclick="addBillingEntity()">+ Add Another Billing Entity</button>
+
+        <div class="banner info" style="margin-top:14px"><span class="banner-icon">&#128161;</span> After confirming, our billing team will schedule a brief call with your AP contact(s) to finalize location-to-entity assignments if needed.</div>
       </div>
     </div>`;
   return '';
@@ -980,29 +1063,35 @@ function renderStructureDetail(sel){
 
 
 // ── BILLING: PRODUCTS ──
-RENDERERS['billing-products'] = ()=>`
+RENDERERS['billing-products'] = ()=>{
+  const billCount = S.billableSelected.size;
+  const protectTotal = billCount * 150;
+  const trueROITotal = billCount * 200;
+  const monthlyTotal = protectTotal + trueROITotal;
+  return `
 <div class="fade-up">
   <div class="step-eyebrow" style="color:var(--teal-text)">Billing & Payment <span class="time-pill">~1 min</span></div>
   <div class="step-title">Products & Pricing</div>
-  <div class="step-desc">Please confirm the products and pricing from your signed contract.</div>
+  <div class="step-desc">Pricing is based on your <strong>${billCount} billable locations</strong> (${C.totalLocations} total stores on your platforms).</div>
   <div class="banner success"><span class="banner-icon">&#128196;</span> Pre-filled from your signed contract</div>
   <div class="card prefilled">
     <div class="card-head">Your Loop Products</div>
     <div class="card-body" style="padding:0">
       <table class="data-table">
-        <thead><tr><th>Product</th><th>Per Location</th><th>Locations</th><th>Monthly Total</th></tr></thead>
+        <thead><tr><th>Product</th><th>Per Location</th><th>Billable Locations</th><th>Monthly Total</th></tr></thead>
         <tbody>
-          <tr><td><span style="background:var(--accent-soft);color:var(--accent-text);padding:2px 10px;border-radius:8px;font-size:11px;font-weight:600">Protect</span></td><td>$150 / month</td><td>${C.locations}</td><td style="font-weight:600">$7,800</td></tr>
-          <tr><td><span style="background:var(--teal-soft);color:var(--teal-text);padding:2px 10px;border-radius:8px;font-size:11px;font-weight:600">TrueROI</span></td><td>$200 / month</td><td>${C.locations}</td><td style="font-weight:600">$10,400</td></tr>
+          <tr><td><span style="background:var(--accent-soft);color:var(--accent-text);padding:2px 10px;border-radius:8px;font-size:11px;font-weight:600">Protect</span></td><td>$150 / month</td><td>${billCount}</td><td style="font-weight:600">$${protectTotal.toLocaleString()}</td></tr>
+          <tr><td><span style="background:var(--teal-soft);color:var(--teal-text);padding:2px 10px;border-radius:8px;font-size:11px;font-weight:600">TrueROI</span></td><td>$200 / month</td><td>${billCount}</td><td style="font-weight:600">$${trueROITotal.toLocaleString()}</td></tr>
         </tbody>
       </table>
     </div>
     <div class="card-foot">
       <div style="font-size:13px;color:var(--text-sec)">
-        <div>Monthly total: <strong>${C.contract.mrr}</strong> &nbsp;|&nbsp; Contract term: <strong>${C.contract.term}</strong></div>
+        <div>Monthly total: <strong>$${monthlyTotal.toLocaleString()}</strong> &nbsp;|&nbsp; Contract term: <strong>${C.contract.term}</strong></div>
       </div>
     </div>
   </div>
+  ${billCount !== C.locations ? `<div class="banner warn"><span class="banner-icon">&#9888;</span> Your contract covers ${C.locations} locations. You currently have <strong>${billCount} locations selected</strong> for billing. ${billCount > C.locations ? 'Additional locations beyond your contract may require an amendment.' : 'You can adjust your billable selection in the Location Mapping step.'}</div>` : ''}
   <div class="card" style="margin-top:4px">
     <div class="card-head">What's Included</div>
     <div class="card-body" style="font-size:13px;line-height:2">
@@ -1015,7 +1104,7 @@ RENDERERS['billing-products'] = ()=>`
     <button class="btn btn-ghost" onclick="showDisputeNotification('products')">This Doesn't Look Right</button>
     <button class="btn btn-teal" onclick="completeAndNext()">Confirmed &rarr;</button>
   </div>
-</div>`;
+</div>`};
 
 // ── BILLING: PAYMENT ──
 RENDERERS['billing-payment'] = ()=>`
@@ -1059,9 +1148,10 @@ RENDERERS['golive-review'] = ()=>`
   <div class="card">
     <div class="card-head">Admin Track Summary</div>
     <div class="card-body" style="font-size:13px;line-height:2">
-      <div style="display:flex;justify-content:space-between"><span>Delivery Platforms</span><strong style="color:var(--green-text)">3 connected (52 stores) &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Delivery Platforms</span><strong style="color:var(--green-text)">3 connected (${C.totalLocations} stores) &#10003;</strong></div>
       <div style="display:flex;justify-content:space-between"><span>Brands</span><strong>${C.brands.length} confirmed &#10003;</strong></div>
-      <div style="display:flex;justify-content:space-between"><span>Locations</span><strong>${C.locations} mapped &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Total Locations</span><strong>${C.totalLocations} found across platforms &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Billable Locations</span><strong style="color:var(--teal-text)">${S.billableSelected.size} of ${C.locations} contracted &#10003;</strong></div>
       <div style="display:flex;justify-content:space-between"><span>Calendar</span><strong>Calendar Month (Jan) &#10003;</strong></div>
       <div style="display:flex;justify-content:space-between"><span>Team Members</span><strong>3 configured &#10003;</strong></div>
       <div style="display:flex;justify-content:space-between"><span>Connectors</span><strong>Available to set up from dashboard &#10003;</strong></div>
@@ -1070,8 +1160,8 @@ RENDERERS['golive-review'] = ()=>`
   <div class="card">
     <div class="card-head">Finance Track Summary</div>
     <div class="card-body" style="font-size:13px;line-height:2">
-      <div style="display:flex;justify-content:space-between"><span>Billing Entity</span><strong style="color:var(--green-text)">${C.billing.entity} &#10003;</strong></div>
-      <div style="display:flex;justify-content:space-between"><span>Structure</span><strong>Single Entity &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Billing ${S.billingEntities.length>1?'Entities':'Entity'}</span><strong style="color:var(--green-text)">${S.billingEntities.map(e=>e.name).join(', ')} &#10003;</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>Structure</span><strong>${S.billingStructure==='single'?'Single Entity':S.billingStructure==='per-location'?'Per-Location':'Custom Grouping'} (${S.billableSelected.size} billable locs) &#10003;</strong></div>
       <div style="display:flex;justify-content:space-between"><span>Products</span><strong>Protect + TrueROI &#10003;</strong></div>
       <div style="display:flex;justify-content:space-between"><span>Payment</span><strong style="color:var(--green-text)">Credit Card &#10003;</strong></div>
     </div>
@@ -1124,9 +1214,9 @@ RENDERERS['golive-live'] = ()=>`
   <div class="step-desc" style="text-align:center;margin:0 auto 24px">Verification is complete. Your dashboard is ready and your data is flowing.</div>
   <div class="card" style="text-align:left;max-width:460px;margin:0 auto 20px">
     <div class="card-body" style="font-size:13px;line-height:2">
-      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> <strong>${C.locations} stores</strong> across 3 platforms connected and verified</div>
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> <strong>${C.totalLocations} stores</strong> across 3 platforms connected (${S.billableSelected.size} billable)</div>
       <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> <strong>${C.brands.length} brands</strong> and locations mapped</div>
-      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> Billing configured for <strong>${C.billing.entity}</strong></div>
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> Billing configured for <strong>${S.billingEntities.map(e=>e.name).join(', ')}</strong></div>
       <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> Dashboard access granted</div>
     </div>
   </div>
@@ -1248,7 +1338,7 @@ RENDERERS['product-complete'] = ()=>`
   <div class="card" style="text-align:left;max-width:480px;margin:0 auto 16px">
     <div class="card-head">Active Products</div>
     <div class="card-body" style="font-size:13px;line-height:2.2">
-      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> <strong>Protect</strong> &mdash; Monitoring all ${C.locations} stores across 3 platforms</div>
+      <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> <strong>Protect</strong> &mdash; Monitoring ${S.billableSelected.size} billable locations across 3 platforms</div>
       <div style="display:flex;gap:10px;align-items:center"><span style="color:var(--green)">&#10003;</span> <strong>TrueROI</strong> &mdash; First reports generating within 24-48 hours</div>
     </div>
   </div>
@@ -1364,7 +1454,7 @@ function completeAndNext(){
   // Show milestone at key points
   const k = PHASES[S.phase].id+'-'+PHASES[S.phase].steps[S.step].id;
   if(k==='access-summary'){
-    showMilestone('Platform Access Complete!','All 3 delivery platforms connected with 52 stores verified.','Next: Business Setup (~10 min)');
+    showMilestone('Platform Access Complete!','All 3 delivery platforms connected with '+C.totalLocations+' stores found. You\'ll select your '+C.locations+' billable locations next.','Next: Business Setup (~10 min)');
     return;
   }
   if(k==='business-connectors'){
@@ -1445,6 +1535,105 @@ function showAddPerson(){
   addAgentMessage('Each team member will receive an email invitation to access Loop with the permissions you set here.');
 }
 
+// ── BILLABLE LOCATION SELECTION ──
+function toggleBillable(id, checkbox){
+  if(checkbox.checked) S.billableSelected.add(id);
+  else S.billableSelected.delete(id);
+  // Re-render the page to update counts
+  navigate(S.phase, S.step);
+}
+
+function selectAllBillable(){
+  S.billableSelected.clear();
+  LOCATIONS.filter(l=>l.billable).forEach(l=>S.billableSelected.add(l.id));
+  // Also add enough to reach contracted count
+  let count = S.billableSelected.size;
+  for(const loc of LOCATIONS){
+    if(count >= C.locations) break;
+    if(!S.billableSelected.has(loc.id)){
+      S.billableSelected.add(loc.id);
+      count++;
+    }
+  }
+  navigate(S.phase, S.step);
+  addAgentMessage('I\'ve selected the first ' + C.locations + ' locations as billable. Adjust as needed.');
+}
+
+function clearAllBillable(){
+  S.billableSelected.clear();
+  navigate(S.phase, S.step);
+}
+
+function confirmLocations(){
+  const count = S.billableSelected.size;
+  if(count !== C.locations){
+    const card = document.getElementById('milestone-card');
+    card.innerHTML=`
+      <div style="font-size:40px;margin-bottom:12px">&#9888;</div>
+      <h2 style="font-size:20px">Billable Selection Mismatch</h2>
+      <div style="text-align:left;background:var(--bg);border-radius:var(--rs);padding:16px;margin:16px 0;font-size:13px;line-height:1.8;color:var(--text-sec)">
+        You've selected <strong>${count} locations</strong> but your contract covers <strong>${C.locations} billable locations</strong>.
+        ${count > C.locations ? '<br><br>Selecting more locations than your contract covers may require a contract amendment. Your account manager will follow up.' : '<br><br>You can continue with fewer locations selected, but billing will be based on your contracted amount of ' + C.locations + ' locations.'}
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn btn-ghost" onclick="closeMilestone()">Go Back & Adjust</button>
+        <button class="btn btn-primary" onclick="closeMilestone();completeAndNext()">Continue Anyway</button>
+      </div>`;
+    document.getElementById('milestone-overlay').classList.add('show');
+    return;
+  }
+  completeAndNext();
+}
+
+// ── BILLING ENTITY MANAGEMENT ──
+function addBillingEntity(){
+  S.billingEntities.push({name:'',address:'',segment:C.billing.segment,apName:'',apEmail:''});
+  navigate(S.phase, S.step);
+  addAgentMessage('New billing entity added. Fill in the entity name, address, and AP contact details.');
+}
+
+function removeBillingEntity(idx){
+  if(idx === 0) return;
+  S.billingEntities.splice(idx, 1);
+  navigate(S.phase, S.step);
+}
+
+function updateBillingEntity(idx, field, value){
+  if(S.billingEntities[idx]) S.billingEntities[idx][field] = value;
+}
+
+function getEntityLocationCount(idx){
+  const billCount = S.billableSelected.size;
+  if(S.billingEntities.length === 1) return billCount;
+  // Distribute evenly for demo purposes
+  const base = Math.floor(billCount / S.billingEntities.length);
+  const remainder = billCount % S.billingEntities.length;
+  return idx < remainder ? base + 1 : base;
+}
+
+function applyGroupingPreset(preset){
+  if(preset === 'brand'){
+    S.billingEntities = [
+      {name:'Starbird Chicken LLC',address:C.billing.address,segment:C.billing.segment,apName:C.ap.name,apEmail:C.ap.email},
+      {name:'Starbird Wings LLC',address:C.billing.address,segment:C.billing.segment,apName:'',apEmail:''}
+    ];
+    addAgentMessage('Set up 2 billing entities by brand. Fill in the AP contact for Starbird Wings.');
+  } else if(preset === 'region'){
+    S.billingEntities = [
+      {name:'Starbird Bay Area LLC',address:C.billing.address,segment:C.billing.segment,apName:C.ap.name,apEmail:C.ap.email},
+      {name:'Starbird East Bay LLC',address:'',segment:C.billing.segment,apName:'',apEmail:''},
+      {name:'Starbird South Bay LLC',address:'',segment:C.billing.segment,apName:'',apEmail:''}
+    ];
+    addAgentMessage('Set up 3 billing entities by region. Fill in the address and AP contacts for each entity.');
+  } else {
+    S.billingEntities = [
+      {name:C.billing.entity,address:C.billing.address,segment:C.billing.segment,apName:C.ap.name,apEmail:C.ap.email}
+    ];
+    addAgentMessage('Starting with your primary entity. Add more as needed using the button below.');
+  }
+  navigate(S.phase, S.step);
+}
+
 // ── CONNECTOR TOGGLE ──
 function toggleConnector(el){
   el.classList.toggle('active');
@@ -1463,7 +1652,7 @@ function showDashboardPreview(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div style="background:var(--white);padding:12px;border-radius:var(--rs);border:1px solid var(--border)">
           <div style="font-size:11px;color:var(--text-light)">Stores Monitored</div>
-          <div style="font-size:22px;font-weight:800;color:var(--accent)">${C.locations}</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent)">${S.billableSelected.size}</div>
         </div>
         <div style="background:var(--white);padding:12px;border-radius:var(--rs);border:1px solid var(--border)">
           <div style="font-size:11px;color:var(--text-light)">Platforms Active</div>
@@ -1550,7 +1739,7 @@ function platformNext(name){
 }
 
 function runVerification(name){
-  const stores = {'DoorDash':22,'Uber Eats':18,'Grubhub':12}[name]||15;
+  const stores = {'DoorDash':34,'Uber Eats':28,'Grubhub':18}[name]||15;
   runVerifySequence(['vi-0','vi-1','vi-2'],()=>{
     document.getElementById('verify-result').innerHTML=`
       <div class="card fade-up" style="border-color:var(--green);margin-top:16px">
@@ -1724,10 +1913,11 @@ function showLiveMilestone(){
   card.innerHTML=`
     <div class="ms-icon">&#127881;</div>
     <h2>You're Live on Loop!</h2>
-    <p>Dashboard access has been granted. ${C.company} is now live across all ${C.locations} locations.</p>
+    <p>Dashboard access has been granted. ${C.company} is now live across ${S.billableSelected.size} billable locations.</p>
     <div class="ms-summary">
       <div class="ms-row"><span>Platforms</span><span>3 connected</span></div>
-      <div class="ms-row"><span>Stores</span><span>${C.locations} verified</span></div>
+      <div class="ms-row"><span>Total Stores</span><span>${C.totalLocations} found</span></div>
+      <div class="ms-row"><span>Billable</span><span>${S.billableSelected.size} locations</span></div>
       <div class="ms-row"><span>Products</span><span>Protect + TrueROI</span></div>
       <div class="ms-row"><span>Billing</span><span>Configured</span></div>
     </div>
